@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIKAP - Sistem Informasi Kinerja dan Penyerapan Anggaran Kanwil Imigrasi Babel</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            immi: {
+              navy: '#002147',
+              navyDark: '#001733',
+              gold: '#D4AF37',
+              goldDark: '#B38F26',
+              goldLight: '#F3E5AB',
+              cyan: '#00A896',
+              crimson: '#E63946',
+              amber: '#D97706',
+              base: '#F8FAFC'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & Babel Standalone -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons & Chart.js CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background-color: #F8FAFC;
+    }
+
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+  </style>
+</head>
+
+<body class="font-sans antialiased text-slate-800 selection:bg-amber-100 selection:text-amber-900">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // --- Lucide Icons Engine (Uses official window.lucide library with seamless SVG fallback) ---
+    const LucideIcon = ({ name, className = "w-4 h-4", ...props }) => {
+      if (window.lucide && window.lucide.icons && window.lucide.icons[name]) {
+        try {
+          const svgHtml = window.lucide.icons[name].toSvg({
+            class: className,
+            ...props
+          });
+          return <span className="inline-flex items-center justify-center shrink-0" dangerouslySetInnerHTML={{ __html: svgHtml }} />;
+        } catch (e) {
+          // fallback if error
+        }
+      }
+      return null;
+    };
+
+    const IconLayoutDashboard = (props) => (
+      LucideIcon({ name: 'layout-dashboard', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" />
+          <rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" />
+        </svg>
+      )
+    );
+
+    const IconFileSpreadsheet = (props) => (
+      LucideIcon({ name: 'file-spreadsheet', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h2" /><path d="M14 17h2" />
+        </svg>
+      )
+    );
+
+    const IconPieChart = (props) => (
+      LucideIcon({ name: 'pie-chart', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" />
+        </svg>
+      )
+    );
+
+    const IconWallet = (props) => (
+      LucideIcon({ name: 'wallet', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+          <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+        </svg>
+      )
+    );
+
+    const IconTrendingUp = (props) => (
+      LucideIcon({ name: 'trending-up', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+        </svg>
+      )
+    );
+
+    const IconCoins = (props) => (
+      LucideIcon({ name: 'coins', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" />
+          <path d="m16.71 13.88.7.71-2.82 2.82" />
+        </svg>
+      )
+    );
+
+    const IconBuilding2 = (props) => (
+      LucideIcon({ name: 'building-2', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+          <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" />
+        </svg>
+      )
+    );
+
+    const IconFileCheck2 = (props) => (
+      LucideIcon({ name: 'file-check-2', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" /><path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <path d="m3 15 2 2 4-4" />
+        </svg>
+      )
+    );
+
+    const IconShieldAlert = (props) => (
+      LucideIcon({ name: 'shield-alert', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="M12 8v4" /><path d="M12 16h.01" />
+        </svg>
+      )
+    );
+
+    const IconSearch = (props) => (
+      LucideIcon({ name: 'search', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+        </svg>
+      )
+    );
+
+    const IconX = (props) => (
+      LucideIcon({ name: 'x', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+        </svg>
+      )
+    );
+
+    const IconFilter = (props) => (
+      LucideIcon({ name: 'filter', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+      )
+    );
+
+    const IconDownload = (props) => (
+      LucideIcon({ name: 'download', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" />
+        </svg>
+      )
+    );
+
+    const IconCalendar = (props) => (
+      LucideIcon({ name: 'calendar', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" />
+          <line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" />
+        </svg>
+      )
+    );
+
+    const IconChevronRight = (props) => (
+      LucideIcon({ name: 'chevron-right', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      )
+    );
+
+
+    // --- Data Definitions (Berdasarkan Laporan Kinerja Penyerapan Anggaran Q3 - 18 September 2026) ---
+    const DIVISION_DATA = {
+      bagtum: {
+        id: 'bagtum',
+        name: 'Bagian Tata Usaha dan Umum',
+        shortName: 'BagTUM',
+        program: 'Program WA.6163',
+        code: 'BAG-TUM',
+        pagu: 8001600000,
+        paguLabel: 'Rp 8,00 M',
+        realisasi: 6714328264,
+        realisasiLabel: 'Rp 6,71 M',
+        sisa: 1287271736,
+        persentase: 83.91,
+        themeColor: '#002147',
+        accentColor: '#D4AF37',
+        badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+        accentBorder: 'border-l-[#D4AF37]',
+        icon: IconBuilding2,
+        roList: [
+          {
+            kode: 'EBD.Z27',
+            nama: 'Layanan Manajemen Keuangan',
+            pagu: 8008000,
+            realisasi: 8006700,
+            persentase: 99.98
+          },
+          {
+            kode: 'EBB.951',
+            nama: 'Layanan Sarana Internal',
+            pagu: 515000000,
+            realisasi: 514485000,
+            persentase: 99.90
+          },
+          {
+            kode: 'EBA.994',
+            nama: 'Layanan Perkantoran',
+            pagu: 5918654000,
+            realisasi: 5221535480,
+            persentase: 88.22
+          },
+          {
+            kode: 'EBD.001',
+            nama: 'Koordinasi dan Konsultasi Perencanaan dan Pelaksanaan Anggaran',
+            pagu: 403065000,
+            realisasi: 288744000,
+            persentase: 71.64
+          },
+          {
+            kode: 'EBA.Z07',
+            nama: 'Layanan BMN',
+            pagu: 3834000,
+            realisasi: 2746000,
+            persentase: 71.62
+          },
+          {
+            kode: 'EBA.962',
+            nama: 'Layanan Umum',
+            pagu: 487117000,
+            realisasi: 334864284,
+            persentase: 68.74
+          },
+          {
+            kode: 'EBA.963',
+            nama: 'Layanan Data dan Informasi',
+            pagu: 393266000,
+            realisasi: 217343000,
+            persentase: 55.27
+          },
+          {
+            kode: 'EBC.954',
+            nama: 'Layanan Manajemen SDM',
+            pagu: 272655000,
+            realisasi: 126603800,
+            persentase: 46.43
+          },
+          {
+            kode: 'EBD.Z32',
+            nama: 'Layanan Reformasi Kinerja',
+            pagu: 1000,
+            realisasi: 0,
+            persentase: 0.00
+          }
+        ]
+      },
+      doklan: {
+        id: 'doklan',
+        name: 'Bidang Dokumen Perjalanan, Izin Tinggal & Status Keimigrasian',
+        shortName: 'Doklanianstak',
+        program: 'Program BF.6161',
+        code: 'BID-DOKLAN',
+        pagu: 1020013000,
+        paguLabel: 'Rp 1,02 M',
+        realisasi: 573044800,
+        realisasiLabel: 'Rp 0,57 M',
+        sisa: 446968200,
+        persentase: 56.18,
+        themeColor: '#00A896',
+        accentColor: '#00A896',
+        badgeClass: 'bg-teal-100 text-teal-800 border-teal-300',
+        accentBorder: 'border-l-[#00A896]',
+        icon: IconFileCheck2,
+        roList: [
+          {
+            kode: 'EBD.001',
+            nama: 'Pembinaan dan Koordinasi Bidang Layanan Keimigrasian',
+            pagu: 1020013000,
+            realisasi: 573044800,
+            persentase: 56.18
+          }
+        ]
+      },
+      gakkum: {
+        id: 'gakkum',
+        name: 'Bidang Penegakan Hukum dan Kepatuhan Internal',
+        shortName: 'Gakkum & Patnal',
+        program: 'Program BF.6161',
+        code: 'BID-GAKKUM',
+        pagu: 2688976000,
+        paguLabel: 'Rp 2,68 M',
+        realisasi: 1239693600,
+        realisasiLabel: 'Rp 1,23 M',
+        sisa: 1449282400,
+        persentase: 46.10,
+        themeColor: '#E63946',
+        accentColor: '#D97706',
+        badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+        accentBorder: 'border-l-[#E63946]',
+        icon: IconShieldAlert,
+        roList: [
+          {
+            kode: 'BHB.U11',
+            nama: 'Operasi Intelijen Keimigrasian di Wilayah Barat',
+            pagu: 248880000,
+            realisasi: 232111600,
+            persentase: 93.26
+          },
+          {
+            kode: 'QHB.U02',
+            nama: 'Operasi Mandiri di Wilayah',
+            pagu: 161924000,
+            realisasi: 134011300,
+            persentase: 82.76
+          },
+          {
+            kode: 'EBD.002',
+            nama: 'Pembinaan dan Koordinasi Bidang Intelijen, Penegakan Hukum dan Kepatuhan Internal Keimigrasian',
+            pagu: 1493694000,
+            realisasi: 722813300,
+            persentase: 48.39
+          },
+          {
+            kode: 'BKA.001',
+            nama: 'Pengawasan Keimigrasian',
+            pagu: 323697000,
+            realisasi: 135589400,
+            persentase: 41.89
+          },
+          {
+            kode: 'BHB.U17',
+            nama: 'Penyidikan Tindak Pidana Keimigrasian di Wilayah Barat',
+            pagu: 71824000,
+            realisasi: 10458000,
+            persentase: 14.56
+          },
+          {
+            kode: 'BHB.U14',
+            nama: 'Operasi Gabungan di Wilayah Barat',
+            pagu: 62891000,
+            realisasi: 4200000,
+            persentase: 6.68
+          },
+          {
+            kode: 'BIB.001',
+            nama: 'Tindakan Administratif Keimigrasian',
+            pagu: 326066000,
+            realisasi: 510000,
+            persentase: 0.16
+          }
+        ]
+      }
+    };
+
+    // Google Sheet Live Connection Config
+    const SPREADSHEET_ID = "1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0";
+    const GOOGLE_API_KEY = "AIzaSyBELhPcX23XGJsnxiFdZezM-Zjh7coMKaY";
+    const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0/export?format=csv`;
+
+    const parseAmount = (val) => {
+      if (typeof val === 'number') return val;
+      if (!val) return 0;
+      let str = val.toString().replace(/Rp|\s/gi, '').replace(/\./g, '').replace(',', '.').trim();
+      let num = parseFloat(str);
+      return isNaN(num) ? 0 : num;
+    };
+
+    const parsePercentage = (val, pagu, realisasi) => {
+      if (typeof val === 'number') return val;
+      if (val) {
+        let str = val.toString().replace(/%|\s/gi, '').replace(',', '.').trim();
+        let num = parseFloat(str);
+        if (!isNaN(num)) return num;
+      }
+      let p = parseAmount(pagu);
+      let r = parseAmount(realisasi);
+      return p > 0 ? (r / p) * 100 : 0;
+    };
+
+    function parseCSV(text) {
+      let lines = text.split('\n');
+      let result = [];
+      for (let line of lines) {
+        if (!line.trim()) continue;
+        let row = [];
+        let insideQuote = false;
+        let currentCell = '';
+        for (let i = 0; i < line.length; i++) {
+          let char = line[i];
+          if (char === '"') {
+            insideQuote = !insideQuote;
+          } else if (char === ',' && !insideQuote) {
+            row.push(currentCell.trim().replace(/^"|"$/g, ''));
+            currentCell = '';
+          } else {
+            currentCell += char;
+          }
+        }
+        row.push(currentCell.trim().replace(/^"|"$/g, ''));
+        result.push(row);
+      }
+      return result;
+    }
+
+    const SUMMARY_DATA = {
+      paguTotal: 11710589000,
+      paguFormatted: 'Rp 11.710.589.000',
+      realisasiTotal: 8527066664,
+      realisasiFormatted: 'Rp 8.527.066.664',
+      sisaTotal: 3184522336,
+      sisaFormatted: 'Rp 3.184.522.336',
+      persentaseTotal: 72.82,
+      period: 'Q3 - 18 September 2026'
+    };
+
+    const formatCurrency = (amount) => {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0
+      }).format(amount);
+    };
+
+    function AnalisisROView({ divisionData, formatCurrency }) {
+      const [filterBidang, setFilterBidang] = React.useState('all');
+      const [searchTerm, setSearchTerm] = React.useState('');
+      const [sortBy, setSortBy] = React.useState('persentase');
+
+      const barChartRef = React.useRef(null);
+      const doughnutChartRef = React.useRef(null);
+      const topROChartRef = React.useRef(null);
+
+      const barChartInstance = React.useRef(null);
+      const doughnutChartInstance = React.useRef(null);
+      const topROChartInstance = React.useRef(null);
+
+      const allROs = React.useMemo(() => {
+        let list = [];
+        Object.keys(divisionData).forEach(divKey => {
+          const div = divisionData[divKey];
+          if (div.roList && div.roList.length > 0) {
+            div.roList.forEach(ro => {
+              list.push({
+                ...ro,
+                bidangId: divKey,
+                bidangName: div.name,
+                themeColor: div.themeColor
+              });
+            });
+          }
+        });
+        return list;
+      }, [divisionData]);
+
+      const filteredROs = React.useMemo(() => {
+        let result = allROs.filter(ro => {
+          const matchBidang = filterBidang === 'all' || ro.bidangId === filterBidang;
+          const matchSearch = ro.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              ro.kode.toLowerCase().includes(searchTerm.toLowerCase());
+          return matchBidang && matchSearch;
+        });
+
+        result.sort((a, b) => {
+          if (sortBy === 'pagu') return b.pagu - a.pagu;
+          if (sortBy === 'realisasi') return b.realisasi - a.realisasi;
+          return b.persentase - a.persentase;
+        });
+
+        return result;
+      }, [allROs, filterBidang, searchTerm, sortBy]);
+
+      const stats = React.useMemo(() => {
+        const total = filteredROs.length;
+        const high = filteredROs.filter(r => r.persentase >= 80).length;
+        const mid = filteredROs.filter(r => r.persentase >= 50 && r.persentase < 80).length;
+        const low = filteredROs.filter(r => r.persentase < 50).length;
+        return { total, high, mid, low };
+      }, [filteredROs]);
+
+      // 1. Horizontal Bar Chart (Ranking RO)
+      React.useEffect(() => {
+        if (!barChartRef.current || typeof Chart === 'undefined') return;
+        if (barChartInstance.current) barChartInstance.current.destroy();
+
+        const topItems = filteredROs.slice(0, 12);
+        const labels = topItems.map(item => `${item.kode} - ${item.nama.length > 28 ? item.nama.substring(0, 28) + '...' : item.nama}`);
+        const dataValues = topItems.map(item => item.persentase);
+        const backgroundColors = topItems.map(item =>
+          item.persentase >= 80 ? 'rgba(16, 185, 129, 0.85)' :
+          item.persentase >= 50 ? 'rgba(245, 158, 11, 0.85)' : 'rgba(239, 68, 68, 0.85)'
+        );
+
+        const ctx = barChartRef.current.getContext('2d');
+        barChartInstance.current = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Capaian Realisasi (%)',
+              data: dataValues,
+              backgroundColor: backgroundColors,
+              borderRadius: 6,
+              barThickness: 16
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `Capaian: ${ctx.raw.toFixed(2)}%`
+                }
+              }
+            },
+            scales: {
+              x: {
+                max: 100,
+                grid: { color: 'rgba(226, 232, 240, 0.6)' },
+                ticks: { callback: v => v + '%' }
+              },
+              y: {
+                grid: { display: false },
+                ticks: { font: { size: 11, weight: 'bold' } }
+              }
+            }
+          }
+        });
+
+        return () => {
+          if (barChartInstance.current) barChartInstance.current.destroy();
+        };
+      }, [filteredROs]);
+
+      // 2. Status Doughnut Chart
+      React.useEffect(() => {
+        if (!doughnutChartRef.current || typeof Chart === 'undefined') return;
+        if (doughnutChartInstance.current) doughnutChartInstance.current.destroy();
+
+        const ctx = doughnutChartRef.current.getContext('2d');
+        doughnutChartInstance.current = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Sangat Baik (≥80%)', 'Optimal (50-79%)', 'Perlu Dorongan (<50%)'],
+            datasets: [{
+              data: [stats.high, stats.mid, stats.low],
+              backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+              borderWidth: 2,
+              borderColor: '#FFFFFF'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11, weight: 'bold' }, usePointStyle: true } }
+            },
+            cutout: '70%'
+          }
+        });
+
+        return () => {
+          if (doughnutChartInstance.current) doughnutChartInstance.current.destroy();
+        };
+      }, [stats]);
+
+      // 3. Top 5 Pagu vs Realisasi Grouped Bar Chart
+      React.useEffect(() => {
+        if (!topROChartRef.current || typeof Chart === 'undefined') return;
+        if (topROChartInstance.current) topROChartInstance.current.destroy();
+
+        const top5ByPagu = [...filteredROs].sort((a,b) => b.pagu - a.pagu).slice(0, 5);
+        const labels = top5ByPagu.map(item => item.kode);
+        const paguValues = top5ByPagu.map(item => (item.pagu / 1000000).toFixed(1));
+        const realisasiValues = top5ByPagu.map(item => (item.realisasi / 1000000).toFixed(1));
+
+        const ctx = topROChartRef.current.getContext('2d');
+        topROChartInstance.current = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Alokasi Pagu (Juta Rp)',
+                data: paguValues,
+                backgroundColor: 'rgba(0, 33, 71, 0.85)',
+                borderRadius: 4
+              },
+              {
+                label: 'Realisasi (Juta Rp)',
+                data: realisasiValues,
+                backgroundColor: 'rgba(6, 182, 212, 0.85)',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { font: { size: 11, weight: 'bold' } } },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.dataset.label}: Rp ${ctx.raw} Juta`
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false } },
+              y: { grid: { color: 'rgba(226, 232, 240, 0.6)' } }
+            }
+          }
+        });
+
+        return () => {
+          if (topROChartInstance.current) topROChartInstance.current.destroy();
+        };
+      }, [filteredROs]);
+
+      return (
+        <div className="space-y-6">
+          {/* Header Controls & Filter */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-[#002147] tracking-tight flex items-center gap-2">
+                <span>📈 Dashboard Analisis Performa Rencana Output (RO)</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Visualisasi interaktif & analisis mendalam capaian serapan anggaran per Rencana Output kegiatan.
+              </p>
+            </div>
+
+            {/* Controls */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search */}
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Cari kode/nama RO..."
+                className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#002147] w-48"
+              />
+
+              {/* Filter Bidang */}
+              <select
+                value={filterBidang}
+                onChange={(e) => setFilterBidang(e.target.value)}
+                className="px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#002147]"
+              >
+                <option value="all">Semua Bidang (Kanwil)</option>
+                <option value="bagtum">Bagian Tata Usaha & Umum</option>
+                <option value="doklan">Dokumen & Status Keimigrasian</option>
+                <option value="gakkum">Penegakan Hukum (Gakkum)</option>
+              </select>
+
+              {/* Sort By */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#002147]"
+              >
+                <option value="persentase">Urutkan: Capaian (%)</option>
+                <option value="pagu">Urutkan: Alokasi Pagu</option>
+                <option value="realisasi">Urutkan: Total Realisasi</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 4 SUMMARY STAT CARDS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total RO Teranalisis</p>
+              <p className="text-2xl font-black text-slate-900 mt-1">{stats.total} <span className="text-xs font-semibold text-slate-500">Kegiatan</span></p>
+            </div>
+            <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200/80 shadow-xs">
+              <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Sangat Baik (≥80%)</p>
+              <p className="text-2xl font-black text-emerald-800 mt-1">{stats.high} <span className="text-xs font-semibold text-emerald-600">RO</span></p>
+            </div>
+            <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200/80 shadow-xs">
+              <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Optimal (50-79%)</p>
+              <p className="text-2xl font-black text-amber-800 mt-1">{stats.mid} <span className="text-xs font-semibold text-amber-600">RO</span></p>
+            </div>
+            <div className="bg-rose-50/70 p-4 rounded-xl border border-rose-200/80 shadow-xs">
+              <p className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Perlu Dorongan (&lt;50%)</p>
+              <p className="text-2xl font-black text-rose-800 mt-1">{stats.low} <span className="text-xs font-semibold text-rose-600">RO</span></p>
+            </div>
+          </div>
+
+          {/* CHARTS GRID 1: Horizontal Bar (Ranking) & Doughnut (Status) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Ranking Performa Capaian RO (%)</h3>
+                  <p className="text-xs text-slate-500">Peringkat persen realisasi fisik & anggaran per RO</p>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">Chart.js Live</span>
+              </div>
+              <div className="h-72 relative">
+                <canvas ref={barChartRef} />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Distribusi Status RO</h3>
+                <p className="text-xs text-slate-500 mb-4">Proporsi kategori capaian target penyerapan</p>
+              </div>
+              <div className="h-56 relative flex items-center justify-center">
+                <canvas ref={doughnutChartRef} />
+              </div>
+              <div className="mt-2 text-center text-xs text-slate-500 font-medium">
+                Total {stats.total} RO Teranalisis
+              </div>
+            </div>
+          </div>
+
+          {/* CHARTS GRID 2: Top 5 Pagu vs Realisasi Grouped Bar */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Perbandingan Pagu vs Realisasi Top 5 Alokasi Terbesar</h3>
+                <p className="text-xs text-slate-500">Evaluasi daya serap anggaran untuk RO dengan alokasi dana terbesar</p>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">Dalam Juta Rupiah</span>
+            </div>
+            <div className="h-64 relative">
+              <canvas ref={topROChartRef} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SikapApp() {
+      const [selectedBidang, setSelectedBidang] = useState('bagtum');
+      const [activeNav, setActiveNav] = useState('dashboard');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [divisionData, setDivisionData] = useState(DIVISION_DATA);
+      const [summaryData, setSummaryData] = useState(SUMMARY_DATA);
+      const [isSyncing, setIsSyncing] = useState(false);
+      const [lastSyncTime, setLastSyncTime] = useState('Otomatis');
+      const [connectionMode, setConnectionMode] = useState('Live (Syncing...)');
+
+      const fetchGoogleSheetData = React.useCallback(async () => {
+        try {
+          setIsSyncing(true);
+          let rows = null;
+          let modeUsed = 'Live (CSV)';
+
+          // 1. Try Google Sheets API v4 if key is provided
+          if (GOOGLE_API_KEY && GOOGLE_API_KEY !== "YOUR_API_KEY_HERE") {
+            try {
+              const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0/values/Sheet1?key=AIzaSyBELhPcX23XGJsnxiFdZezM-Zjh7coMKaY`;
+              const res = await fetch(apiUrl);
+              if (res.ok) {
+                const json = await res.json();
+                if (json.values && json.values.length > 0) {
+                  rows = json.values;
+                  modeUsed = 'Live (API v4)';
+                }
+              }
+            } catch (apiErr) {
+              console.warn("Google Sheets API v4 notice, switching to CSV fallback:", apiErr);
+            }
+          }
+
+          // 2. Fallback to direct CSV export if API v4 didn't return rows
+          if (!rows || rows.length === 0) {
+            try {
+              const csvUrl = `${GOOGLE_SHEET_CSV_URL}&_t=${Date.now()}`;
+              const res = await fetch(csvUrl);
+              if (res.ok) {
+                const csvText = await res.text();
+                rows = parseCSV(csvText);
+                modeUsed = 'Live (CSV)';
+              }
+            } catch (csvErr) {
+              console.error("CSV fetch error:", csvErr);
+            }
+          }
+
+          if (rows && rows.length > 1) {
+            setConnectionMode(modeUsed);
+            let items = [];
+            for (let i = 1; i < rows.length; i++) {
+              let row = rows[i];
+              if (row.length < 5) continue;
+              items.push({
+                id: row[0],
+                kode_program: row[1],
+                bidang_bagian: row[2],
+                kode_ro: row[3],
+                nama_ro: row[4],
+                pagu: parseAmount(row[5]),
+                realisasi: parseAmount(row[6]),
+                sisa: parseAmount(row[7]),
+                persentase: parsePercentage(row[8], row[5], row[6])
+              });
+            }
+
+            let newDivData = { ...DIVISION_DATA };
+            let totalKanwilPagu = 0;
+            let totalKanwilRealisasi = 0;
+
+            ['bagtum', 'doklan', 'gakkum'].forEach((divKey) => {
+              let divCode = divKey === 'bagtum' ? 'BagTUM' : divKey === 'doklan' ? 'Doklan' : 'Gakkum';
+              let matching = items.filter(it => it.bidang_bagian && it.bidang_bagian.toLowerCase() === divCode.toLowerCase());
+
+              if (matching.length > 0) {
+                let subPagu = matching.reduce((sum, item) => sum + item.pagu, 0);
+                let subRealisasi = matching.reduce((sum, item) => sum + item.realisasi, 0);
+                let subPct = subPagu > 0 ? (subRealisasi / subPagu) * 100 : 0;
+
+                newDivData[divKey] = {
+                  ...newDivData[divKey],
+                  pagu: subPagu,
+                  paguLabel: `Rp ${(subPagu / 1000000000).toFixed(2)} M`,
+                  realisasi: subRealisasi,
+                  realisasiLabel: `Rp ${(subRealisasi / 1000000000).toFixed(2)} M`,
+                  sisa: subPagu - subRealisasi,
+                  persentase: subPct,
+                  roList: matching.map(m => ({
+                    kode: m.kode_ro,
+                    nama: m.nama_ro,
+                    pagu: m.pagu,
+                    realisasi: m.realisasi,
+                    persentase: m.persentase
+                  }))
+                };
+              }
+
+              totalKanwilPagu += newDivData[divKey].pagu;
+              totalKanwilRealisasi += newDivData[divKey].realisasi;
+            });
+
+            let totalSisa = totalKanwilPagu - totalKanwilRealisasi;
+            let totalPct = totalKanwilPagu > 0 ? (totalKanwilRealisasi / totalKanwilPagu) * 100 : 0;
+
+            setDivisionData(newDivData);
+            setSummaryData({
+              paguTotal: totalKanwilPagu,
+              paguFormatted: formatCurrency(totalKanwilPagu),
+              realisasiTotal: totalKanwilRealisasi,
+              realisasiFormatted: formatCurrency(totalKanwilRealisasi),
+              sisaTotal: totalSisa,
+              sisaFormatted: formatCurrency(totalSisa),
+              persentaseTotal: parseFloat(totalPct.toFixed(2)),
+              period: `Live ${modeUsed}`
+            });
+
+            setLastSyncTime(new Date().toLocaleTimeString('id-ID'));
+          }
+        } catch (err) {
+          console.warn("Realtime sync notice:", err);
+        } finally {
+          setIsSyncing(false);
+        }
+      }, []);
+
+      React.useEffect(() => {
+        fetchGoogleSheetData();
+        const interval = setInterval(() => {
+          fetchGoogleSheetData();
+        }, 10000);
+        return () => clearInterval(interval);
+      }, [fetchGoogleSheetData]);
+
+      const currentBidang = divisionData[selectedBidang] || DIVISION_DATA[selectedBidang];
+
+      const filteredROList = useMemo(() => {
+        return currentBidang.roList.filter((item) =>
+          item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.kode.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }, [currentBidang, searchQuery]);
+
+      // Gauge Circular parameters
+      const radius = 72;
+      const circumference = 2 * Math.PI * radius;
+      const strokeDashoffset = circumference - (summaryData.persentaseTotal / 100) * circumference;
+
+      return (
+        <div className="flex h-screen bg-[#F0F4F9] font-sans text-slate-800 antialiased overflow-hidden">
+
+          {/* 1. SIDEBAR (LEFT - Modern Light Style) */}
+          <aside className="w-64 bg-white text-slate-800 flex flex-col justify-between shrink-0 shadow-sm border-r border-slate-200/80 z-20">
+            <div>
+              {/* Logo "SIKAP" with Official Ministry Emblem */}
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-full p-0.5 bg-gradient-to-br from-[#002147] to-[#D4AF37] shadow-sm shrink-0 flex items-center justify-center">
+                    <img
+                      src="img/logo_kemenimipas.png"
+                      alt="Logo Kementerian Imigrasi dan Pemasyarakatan RI"
+                      className="w-full h-full object-contain rounded-full bg-[#002147]"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<span className="text-[#D4AF37] font-black text-xl">S</span>';
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-extrabold text-xl tracking-tight text-[#002147]">SIKAP</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">
+                        Admin
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 tracking-tight font-semibold">
+                      Kanwil Imigrasi Babel
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation Items */}
+              <nav className="p-4 space-y-1.5">
+                <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Menu Utama
+                </p>
+
+                {/* Dashboard Utama (Active) */}
+                <button
+                  onClick={() => setActiveNav('dashboard')}
+                  className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${activeNav === 'dashboard'
+                    ? 'bg-[#002147] text-white shadow-md font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                >
+                  <IconLayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard Utama</span>
+                </button>
+
+                {/* Laporan Anggaran */}
+                <button
+                  onClick={() => setActiveNav('laporan')}
+                  className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${activeNav === 'laporan'
+                    ? 'bg-[#002147] text-white shadow-md font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                >
+                  <IconFileSpreadsheet className="w-4 h-4" />
+                  <span>Laporan Anggaran</span>
+                </button>
+
+                {/* Analisis RO */}
+                <button
+                  onClick={() => setActiveNav('analisis')}
+                  className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${activeNav === 'analisis'
+                    ? 'bg-[#002147] text-white shadow-md font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                >
+                  <IconPieChart className="w-4 h-4" />
+                  <span>Analisis RO</span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Sidebar Footer User Info */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#002147]/10 border border-[#002147]/20 flex items-center justify-center text-[#002147] font-bold text-sm">
+                  KB
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-xs font-bold text-slate-800 truncate">Kanwil Babel</p>
+                  <p className="text-[10px] text-slate-500 truncate">kanwil.babel@imigrasi.go.id</p>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* 2. TOP BAR & MAIN CONTENT */}
+          <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden bg-[#F0F4F9]">
+
+            {/* Top Bar Header */}
+            <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 py-4 flex items-center justify-between shadow-xs">
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <span>Monitoring Penyerapan Anggaran Kanwil Imigrasi Babel</span>
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    <IconCalendar className="w-3 h-3 text-blue-600" />
+                    Data Period: {summaryData.period}
+                  </span>
+                  <span className="text-xs text-slate-400">•</span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    Sistem Informasi Kinerja & Penyerapan Anggaran (SIKAP)
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={fetchGoogleSheetData}
+                  disabled={isSyncing}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-[#002147] bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 shadow-xs cursor-pointer"
+                  title="Manual Sync Database Google Sheet"
+                >
+                  <span className={isSyncing ? 'animate-spin' : ''}>🔄</span>
+                  <span>{isSyncing ? 'Memuat Data...' : `Update: ${lastSyncTime}`}</span>
+                </button>
+                <button className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 rounded-xl transition border border-slate-200 shadow-xs">
+                  <IconDownload className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Export Laporan</span>
+                </button>
+                <div className="h-4 w-[1px] bg-slate-200"></div>
+                <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-xs font-bold text-emerald-700">
+                    {connectionMode}
+                  </span>
+                </div>
+              </div>
+            </header>
+
+            {/* Dashboard Content Container */}
+            <div className="p-8 space-y-6 max-w-7xl mx-auto w-full">
+
+              {activeNav === 'analisis' ? (
+                <AnalisisROView divisionData={divisionData} formatCurrency={formatCurrency} />
+              ) : (
+                <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* 1. Total Pagu */}
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      TOTAL PAGU ANGGARAN
+                    </span>
+                    <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+                      <IconWallet className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-2xl font-black text-slate-900 tracking-tight">
+                      {summaryData.paguFormatted}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                      <span className="font-semibold text-slate-700">DIPA TA 2026</span>
+                      <span>•</span>
+                      <span>3 Bidang Kerja</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Total Realisasi */}
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      TOTAL REALISASI ANGGARAN
+                    </span>
+                    <div className="p-2.5 rounded-xl bg-cyan-50 text-cyan-600">
+                      <IconTrendingUp className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-black text-slate-900 tracking-tight">
+                        {summaryData.realisasiFormatted}
+                      </span>
+                      <span className="text-xs font-extrabold text-cyan-700 bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-200">
+                        {summaryData.persentaseTotal}%
+                      </span>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="mt-3 w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-cyan-500 to-blue-600 h-2 rounded-full transition-all duration-700"
+                        style={{ width: `${summaryData.persentaseTotal}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Sisa Anggaran */}
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      SISA PAGU ANGGARAN
+                    </span>
+                    <div className="p-2.5 rounded-xl bg-slate-100 text-slate-600">
+                      <IconCoins className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-2xl font-black text-slate-900 tracking-tight">
+                      {summaryData.sisaFormatted}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                      <span>Sisa Realisasi:</span>
+                      <span className="font-semibold text-slate-700">
+                        {(100 - summaryData.persentaseTotal).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CHARTS & INTERACTIVE DIVISION CARDS (MIDDLE) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+
+                {/* Main Donut Chart (Left - 5 Cols) */}
+                <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                        Penyerapan Kanwil Total
+                      </h2>
+                      <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+                        Target: 70% Q3
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Realisasi kumulatif anggaran seluruh bidang kerja
+                    </p>
+                  </div>
+
+                  {/* Donut Gauge Chart (Cyan Arc matching PDF Page 2) */}
+                  <div className="my-6 flex flex-col items-center justify-center">
+                    <div className="relative w-48 h-48 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
+                        <circle
+                          cx="80"
+                          cy="80"
+                          r={radius}
+                          stroke="#E2E8F0"
+                          strokeWidth="14"
+                          fill="transparent"
+                        />
+                        <circle
+                          cx="80"
+                          cy="80"
+                          r={radius}
+                          stroke="#06B6D4"
+                          strokeWidth="14"
+                          fill="transparent"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={strokeDashoffset}
+                          strokeLinecap="round"
+                          className="transition-all duration-1000 ease-out drop-shadow-sm"
+                        />
+                      </svg>
+                      {/* Center Gauge Text */}
+                      <div className="absolute flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-slate-900 tracking-tighter">
+                          {summaryData.persentaseTotal.toFixed(2)}%
+                        </span>
+                        <span className="text-[11px] font-bold text-cyan-600 uppercase tracking-wider mt-0.5">
+                          Tercapai
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Chart Breakdown Legend */}
+                  <div className="pt-4 border-t border-slate-100 grid grid-cols-2 gap-3 text-xs">
+                    <div className="flex items-center gap-2.5 p-2 rounded-xl bg-cyan-50/80 border border-cyan-100">
+                      <span className="w-3 h-3 rounded-full bg-cyan-500 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-medium">Realisasi</p>
+                        <p className="font-bold text-slate-900">Rp {(summaryData.realisasiTotal / 1000000000).toFixed(2)} M ({summaryData.persentaseTotal.toFixed(1)}%)</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="w-3 h-3 rounded-full bg-slate-300 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-medium">Sisa Pagu</p>
+                        <p className="font-bold text-slate-700">Rp {(summaryData.sisaTotal / 1000000000).toFixed(2)} M ({(100 - summaryData.persentaseTotal).toFixed(1)}%)</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 Division Cards (Right - 7 Cols) */}
+                <div className="lg:col-span-7 flex flex-col justify-between gap-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <div>
+                      <h2 className="text-base font-bold text-[#002147] tracking-tight">
+                        Capaian Penyerapan per Bidang
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Klik kartu bidang untuk memperbarui daftar detail Rencana Output (RO) di bawah
+                      </p>
+                    </div>
+                    <span className="text-xs text-slate-400 font-semibold">
+                      3 Bidang Aktif
+                    </span>
+                  </div>
+
+                  {/* 3 Cards */}
+                  <div className="space-y-3">
+                    {Object.values(divisionData).map((div) => {
+                      const isSelected = selectedBidang === div.id;
+                      const DivIcon = div.icon;
+
+                      return (
+                        <div
+                          key={div.id}
+                          onClick={() => setSelectedBidang(div.id)}
+                          className={`cursor-pointer group relative rounded-xl border-l-4 transition-all duration-300 ease-in-out transform origin-center ${div.accentBorder} ${isSelected
+                            ? 'p-4 md:p-5 bg-white border border-slate-300 ring-2 ring-[#002147] shadow-xl scale-100 opacity-100 z-10'
+                            : 'p-2.5 md:p-3 bg-slate-100/60 border border-slate-200 hover:bg-white hover:border-slate-300 scale-[0.96] opacity-65 hover:opacity-100 shadow-xs'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 md:gap-3">
+                              <div
+                                className={`rounded-xl transition-all duration-300 ${isSelected ? 'p-2.5 shadow-sm' : 'p-1.5'
+                                  }`}
+                                style={{
+                                  backgroundColor: `${div.themeColor}${isSelected ? '20' : '10'}`,
+                                  color: div.themeColor
+                                }}
+                              >
+                                <DivIcon className={isSelected ? "w-5 h-5" : "w-4 h-4"} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h3
+                                    className={`font-bold transition-all duration-300 ${isSelected ? 'text-base text-[#002147]' : 'text-xs text-slate-700'
+                                      }`}
+                                  >
+                                    {div.name}
+                                  </h3>
+                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-600 font-semibold">
+                                    {div.code}
+                                  </span>
+                                </div>
+                                <div className={`flex items-center gap-3 transition-all duration-300 ${isSelected ? 'mt-1.5 text-xs text-slate-600' : 'mt-0.5 text-[11px] text-slate-500'}`}>
+                                  <span>
+                                    Pagu: <strong className="text-slate-800">{div.paguLabel}</strong>
+                                  </span>
+                                  <span>•</span>
+                                  <span>
+                                    Realisasi: <strong className="text-slate-800">{div.realisasiLabel}</strong>
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Percentage Badge */}
+                            <div className="flex items-center gap-2.5 text-right shrink-0">
+                              <div>
+                                <div
+                                  className={`font-black tracking-tight transition-all duration-300 ${isSelected ? 'text-xl' : 'text-sm'
+                                    }`}
+                                  style={{ color: div.themeColor }}
+                                >
+                                  {div.persentase.toFixed(2)}%
+                                </div>
+                                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">
+                                  Realisasi
+                                </span>
+                              </div>
+                              <div
+                                className={`rounded-full flex items-center justify-center transition-all duration-300 ${isSelected
+                                  ? 'w-7 h-7 bg-[#002147] text-white rotate-90 shadow-md'
+                                  : 'w-5 h-5 bg-slate-200/80 text-slate-500 group-hover:bg-slate-300'
+                                  }`}
+                              >
+                                <IconChevronRight className={isSelected ? "w-4 h-4" : "w-3 h-3"} />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div className={`w-full bg-slate-200/70 rounded-full overflow-hidden transition-all duration-300 ${isSelected ? 'mt-3 h-2' : 'mt-2 h-1 opacity-70'
+                            }`}>
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${div.persentase}%`,
+                                backgroundColor: div.themeColor
+                              }}
+                            />
+                          </div>
+
+                          {/* Active Pill indicator (Only shown when selected to expand vertical height) */}
+                          {isSelected && (
+                            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] animate-fadeIn">
+                              <span className="font-semibold text-[#002147] flex items-center gap-1.5">
+                                <span
+                                  className="w-2 h-2 rounded-full animate-ping"
+                                  style={{ backgroundColor: div.themeColor }}
+                                />
+                                Bidang Aktif Dipilih
+                              </span>
+                              <span className="font-bold text-[#002147]">
+                                {div.roList.length} Rencana Output (RO)
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. DETAIL RO TABLE SECTION (BOTTOM - Clean Light Style) */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                {/* Section Header with dynamic currentBidang info */}
+                <div className="p-6 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-8 rounded-full"
+                      style={{ backgroundColor: currentBidang.themeColor }}
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-slate-900">
+                          Daftar Rencana Output (RO) - {currentBidang.name}
+                        </h2>
+                        <span
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${currentBidang.badgeClass}`}
+                        >
+                          {currentBidang.persentase.toFixed(2)}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Menampilkan rincian alokasi anggaran dan serapan target output kegiatan ({currentBidang.program})
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Search and Action Bar with Lucide Search and X */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Cari kode atau nama RO..."
+                        className="pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 w-64 text-slate-700 shadow-xs transition"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition"
+                          title="Hapus pencarian"
+                        >
+                          <IconX className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-xs transition">
+                      <IconFilter className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Filter</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Table Content */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-slate-600 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+                      <tr>
+                        <th scope="col" className="px-6 py-3.5 w-16 text-center">
+                          No
+                        </th>
+                        <th scope="col" className="px-6 py-3.5 w-32">
+                          Kode RO
+                        </th>
+                        <th scope="col" className="px-6 py-3.5">
+                          Nama Rencana Output (RO)
+                        </th>
+                        <th scope="col" className="px-6 py-3.5 text-right">
+                          Pagu (Rp)
+                        </th>
+                        <th scope="col" className="px-6 py-3.5 text-right">
+                          Realisasi (Rp)
+                        </th>
+                        <th scope="col" className="px-6 py-3.5 text-center w-40">
+                          Capaian (%)
+                        </th>
+                        <th scope="col" className="px-6 py-3.5 text-center w-28">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {filteredROList.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="px-6 py-8 text-center text-slate-400">
+                            Tidak ada Rencana Output yang cocok dengan kata kunci "{searchQuery}".
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredROList.map((ro, index) => {
+                          const isHigh = ro.persentase >= 80;
+                          const isMid = ro.persentase >= 50 && ro.persentase < 80;
+
+                          return (
+                            <tr
+                              key={ro.kode + index}
+                              className="hover:bg-slate-50/80 transition-colors"
+                            >
+                              <td className="px-6 py-4 text-center font-semibold text-slate-400">
+                                {index + 1}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="font-mono font-bold text-xs bg-slate-100 text-slate-800 px-2 py-1 rounded-md border border-slate-200/80">
+                                  {ro.kode}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 font-semibold text-slate-900">
+                                {ro.nama}
+                              </td>
+                              <td className="px-6 py-4 text-right font-medium text-slate-600 font-mono">
+                                {formatCurrency(ro.pagu)}
+                              </td>
+                              <td className="px-6 py-4 text-right font-bold text-slate-900 font-mono">
+                                {formatCurrency(ro.realisasi)}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex flex-col items-center">
+                                  <span className="font-black text-xs text-slate-900">
+                                    {ro.persentase.toFixed(2)}%
+                                  </span>
+                                  <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                                    <div
+                                      className="h-1.5 rounded-full transition-all duration-300"
+                                      style={{
+                                        width: `${Math.min(ro.persentase, 100)}%`,
+                                        backgroundColor: isHigh
+                                          ? '#10B981'
+                                          : isMid
+                                            ? '#F59E0B'
+                                            : '#EF4444'
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {isHigh ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Sangat Baik
+                                  </span>
+                                ) : isMid ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    Optimal
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    Perlu Dorongan
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                    {/* Table Footer Summary */}
+                    <tfoot className="bg-slate-50/80 font-bold border-t border-slate-200 text-slate-900">
+                      <tr>
+                        <td colSpan="3" className="px-6 py-3.5 text-right uppercase text-[11px] text-slate-500">
+                          Total Sub Pagu & Realisasi ({currentBidang.shortName}):
+                        </td>
+                        <td className="px-6 py-3.5 text-right font-mono font-black text-slate-800">
+                          {formatCurrency(currentBidang.pagu)}
+                        </td>
+                        <td className="px-6 py-3.5 text-right font-mono font-black text-slate-900">
+                          {formatCurrency(currentBidang.realisasi)}
+                        </td>
+                        <td className="px-6 py-3.5 text-center font-mono font-black text-blue-700">
+                          {currentBidang.persentase.toFixed(2)}%
+                        </td>
+                        <td className="px-6 py-3.5"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+                </>
+              )}
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<SikapApp />);
+  </script>
+</body>
+
+</html>

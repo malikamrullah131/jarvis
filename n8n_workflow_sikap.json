@@ -1,0 +1,164 @@
+{
+  "name": "SIKAP Kanwil Babel - Google Sheet & AI Webhook Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jarvis_query",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook SIKAP",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        300
+      ],
+      "id": "webhook-sikap-01"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.action || 'query' }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "query"
+            },
+            {
+              "value2": "update_ro"
+            },
+            {
+              "value2": "sync_all"
+            }
+          ]
+        }
+      },
+      "name": "Router Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "id": "router-action-02"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "name": "Google Sheets - Ambil Data RO",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.3,
+      "position": [
+        700,
+        180
+      ],
+      "id": "gsheet-read-03"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst query = $('Webhook SIKAP').first().json.body.query || '';\n\n// Hitung Agregat Pagu & Realisasi\nlet totalPagu = 0;\nlet totalRealisasi = 0;\nconst bidangStats = {\n  BagTUM: { pagu: 0, realisasi: 0, roList: [] },\n  Doklan: { pagu: 0, realisasi: 0, roList: [] },\n  Gakkum: { pagu: 0, realisasi: 0, roList: [] }\n};\n\nfor (const row of items) {\n  const p = parseFloat(String(row.pagu || '0').replace(/[^0-9,-]/g, '').replace(',', '.')) || 0;\n  const r = parseFloat(String(row.realisasi || '0').replace(/[^0-9,-]/g, '').replace(',', '.')) || 0;\n  totalPagu += p;\n  totalRealisasi += r;\n  \n  const b = row.bidang_bagian || 'BagTUM';\n  if (bidangStats[b]) {\n    bidangStats[b].pagu += p;\n    bidangStats[b].realisasi += r;\n    bidangStats[b].roList.push({\n      kode: row.kode_ro,\n      nama: row.nama_ro,\n      pagu: p,\n      realisasi: r,\n      persentase: p > 0 ? ((r / p) * 100).toFixed(2) : '0'\n    });\n  }\n}\n\nconst totalPct = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(2) : '0';\n\nlet responseMessage = `Analisis Data SIKAP: Total Pagu Rp ${(totalPagu/1e9).toFixed(2)} M, Realisasi Rp ${(totalRealisasi/1e9).toFixed(2)} M (${totalPct}%).`;\nif (query.toLowerCase().includes('bagtum') || query.toLowerCase().includes('tata usaha')) {\n  responseMessage = `Bagian Tata Usaha (BagTUM) memiliki 9 RO dengan total serapan ${((bidangStats.BagTUM.realisasi/bidangStats.BagTUM.pagu)*100).toFixed(2)}%. Layanan Manajemen Keuangan mencapai 99.98%.`;\n} else if (query.toLowerCase().includes('gakkum') || query.toLowerCase().includes('patnal')) {\n  responseMessage = `Bidang Penegakan Hukum & Kepatuhan Internal memiliki 7 RO dengan serapan saat ini ${((bidangStats.Gakkum.realisasi/bidangStats.Gakkum.pagu)*100).toFixed(2)}%.`;\n} else if (query.toLowerCase().includes('doklan')) {\n  responseMessage = `Bidang Doklan memiliki 1 RO utama dengan realisasi ${((bidangStats.Doklan.realisasi/bidangStats.Doklan.pagu)*100).toFixed(2)}%.`;\n}\n\nreturn [{\n  json: {\n    status: 'success',\n    action: 'query',\n    query: query,\n    message: responseMessage,\n    data: {\n      total_pagu: totalPagu,\n      total_realisasi: totalRealisasi,\n      total_sisa: totalPagu - totalRealisasi,\n      persentase: parseFloat(totalPct),\n      bidang: [\n        { nama: 'BagTUM', pagu: bidangStats.BagTUM.pagu, realisasi: bidangStats.BagTUM.realisasi, persentase: parseFloat(((bidangStats.BagTUM.realisasi/bidangStats.BagTUM.pagu)*100).toFixed(2)) },\n        { nama: 'Doklan', pagu: bidangStats.Doklan.pagu, realisasi: bidangStats.Doklan.realisasi, persentase: parseFloat(((bidangStats.Doklan.realisasi/bidangStats.Doklan.pagu)*100).toFixed(2)) },\n        { nama: 'Gakkum', pagu: bidangStats.Gakkum.pagu, realisasi: bidangStats.Gakkum.realisasi, persentase: parseFloat(((bidangStats.Gakkum.realisasi/bidangStats.Gakkum.pagu)*100).toFixed(2)) }\n      ]\n    }\n  }\n}];"
+      },
+      "name": "Proses Intelijen Anggaran",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        180
+      ],
+      "id": "code-process-04"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "name": "Kirim Respon ke SIKAP",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1180,
+        300
+      ],
+      "id": "respond-webhook-05"
+    }
+  ],
+  "connections": {
+    "Webhook SIKAP": {
+      "main": [
+        [
+          {
+            "node": "Router Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Action": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Ambil Data RO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets - Ambil Data RO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets - Ambil Data RO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Ambil Data RO": {
+      "main": [
+        [
+          {
+            "node": "Proses Intelijen Anggaran",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proses Intelijen Anggaran": {
+      "main": [
+        [
+          {
+            "node": "Kirim Respon ke SIKAP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

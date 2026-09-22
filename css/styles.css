@@ -1,0 +1,184 @@
+/* ==========================================================================
+   SIKAP - Dashboard Penyerapan Anggaran Kanwil Kemenimipas Bangka Belitung
+   Theme: Official Government Portal (Dominant White, Navy Blue & Soft Gold)
+   Mobile & Responsive Polish for Android/iOS & Desktop
+   ========================================================================== */
+
+:root {
+  /* Brand Palette */
+  --color-navy: #0f172a;
+  --color-navy-dark: #090d16;
+  --color-blue: #1e3a8a;
+  --color-blue-bright: #1d4ed8;
+  
+  --color-gold: #f59e0b;
+  --color-gold-light: #fbbf24;
+  --color-gold-soft: #fef3c7;
+  --color-gold-dark: #b45309;
+
+  --color-bg: #f8fafc;
+  --color-card: #ffffff;
+  --color-border: #e2e8f0;
+
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --shadow-gov: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --shadow-gov-hover: 0 10px 25px -5px rgba(30, 58, 138, 0.12), 0 8px 10px -6px rgba(30, 58, 138, 0.04);
+}
+
+/* Base Body Style */
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Utility: Hide Scrollbar for Horizontal Touch Swiping */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Modal Overlay & Animations */
+#webhookModal:not(.hidden), #dipaRecordModal:not(.hidden) {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Quick Prompt Chips */
+.quick-chip {
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* Toast Notifications - Mobile Friendly */
+#toastContainer {
+  max-width: calc(100vw - 32px);
+}
+
+.toast-item {
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.toast-item.success {
+  background: #065f46;
+  border: 1px solid #10b981;
+}
+
+.toast-item.error {
+  background: #991b1b;
+  border: 1px solid #f43f5e;
+}
+
+.toast-item.info {
+  background: #1e3a8a;
+  border: 1px solid #3b82f6;
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile Optimizations (< 640px) */
+@media (max-width: 639px) {
+  /* Prevent horizontal body overflow on phones */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Compact Padding for Cards */
+  .p-5 {
+    padding: 0.875rem !important;
+  }
+  .p-6 {
+    padding: 1rem !important;
+  }
+
+  /* Responsive canvas height */
+  canvas {
+    max-height: 250px !important;
+  }
+
+  /* Touch Table Horizontal Scroll */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modal Fullsheet Mobile feel */
+  #webhookModal > div, #dipaRecordModal > div {
+    max-height: 92vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* Typography Auto Scaling */
+  h1 {
+    font-size: 1rem !important;
+  }
+  h2 {
+    font-size: 1.15rem !important;
+  }
+  h3 {
+    font-size: 0.95rem !important;
+  }
+}
+
+/* Print Optimization */
+@media print {
+  header, #jarvisPromptForm, #webhookModal, #dipaRecordModal, footer {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
