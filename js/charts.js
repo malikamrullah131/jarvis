@@ -85,7 +85,7 @@ window.ChartsModule = (function () {
     circleChartInstance = new Chart(circleCtx, {
       type: 'doughnut',
       data: {
-        labels: ['Completed', 'Processing', 'Pending'],
+        labels: ['Sangat Baik', 'Optimal', 'Perlu Dorongan'],  // Bug #3 Fix: match actual DB status values
         datasets: [{
           data: [0, 0, 0],
           backgroundColor: [
@@ -133,21 +133,24 @@ window.ChartsModule = (function () {
   /**
    * Update data grafik dari lokal DatabaseManager
    */
-  function updateCharts(filterFilter = "all") {
+  // Bug #8 Fix: renamed parameter from `filterFilter` to `filter` (typo)
+  // Bug #3 Fix: use correct field names `bidang_bagian` and `realisasi` (not `category`/`value`)
+  //             use correct status values: "Sangat Baik", "Optimal", "Perlu Dorongan"
+  function updateCharts(filter = "all") {
     if (!window.DatabaseManager) return;
 
     let records = window.DatabaseManager.getAllRecords();
 
-    if (filterFilter === "completed") {
-      records = records.filter(r => r.status === "Completed");
-    } else if (filterFilter === "pending") {
-      records = records.filter(r => r.status === "Pending" || r.status === "Processing");
+    if (filter === "completed") {
+      records = records.filter(r => r.status === "Sangat Baik");
+    } else if (filter === "pending") {
+      records = records.filter(r => r.status === "Optimal" || r.status === "Perlu Dorongan");
     }
 
     const categoryTotals = {};
     records.forEach(r => {
-      const cat = r.category || "General";
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + (r.value || 0);
+      const cat = r.bidang_bagian || "General";     // Bug #3 Fix: was `r.category`
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + (r.realisasi || 0);  // Bug #3 Fix: was `r.value`
     });
 
     const categories = Object.keys(categoryTotals);
@@ -159,17 +162,18 @@ window.ChartsModule = (function () {
       barChartInstance.update();
     }
 
+    // Bug #3 Fix: use correct status strings matching DatabaseManager
     const statusCounts = {
-      Completed: records.filter(r => r.status === "Completed").length,
-      Processing: records.filter(r => r.status === "Processing").length,
-      Pending: records.filter(r => r.status === "Pending").length
+      SangatBaik: records.filter(r => r.status === "Sangat Baik").length,
+      Optimal: records.filter(r => r.status === "Optimal").length,
+      PerluDorongan: records.filter(r => r.status === "Perlu Dorongan").length
     };
 
     if (circleChartInstance) {
       circleChartInstance.data.datasets[0].data = [
-        statusCounts.Completed,
-        statusCounts.Processing,
-        statusCounts.Pending
+        statusCounts.SangatBaik,
+        statusCounts.Optimal,
+        statusCounts.PerluDorongan
       ];
       circleChartInstance.update();
     }

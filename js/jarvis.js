@@ -216,9 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Fetch() to n8n Webhook
   async function sendPromptToN8n(promptText) {
     // Selalu gunakan proxy lokal (server.py) untuk menghindari CORS
-    const activeUrl = '/proxy/n8n';
+    const proxyUrl = '/proxy/n8n';
 
-    if (!activeUrl) {
+    // Bug #5 Fix: Check actual webhook URL setting, not the hardcoded proxy path
+    if (!n8nWebhookUrl) {
       showToast("Webhook n8n belum dikonfigurasi. Menampilkan simulasi data Imigrasi Babel.", "info");
       simulateJarvisResponse(promptText);
       return;
@@ -226,8 +227,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       showToast("Mengirim instruksi query ke n8n Webhook...", "info");
-      
-      const response = await fetch(activeUrl, {
+
+      // Bug #12 Fix: Pass the actual n8nWebhookUrl as override so server.py proxy routes correctly
+      const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -236,7 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           prompt: promptText,
           timestamp: new Date().toISOString(),
-          source: 'SIKAP_KEMENIMIPAS_BABEL'
+          source: 'SIKAP_KEMENIMIPAS_BABEL',
+          override_n8n_url: n8nWebhookUrl
         })
       });
 
@@ -477,8 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
   }
 
+  // Bug #4 Fix: Guard against null/undefined/non-string input
   function escapeHtml(str) {
-    return str.replace(/[&<>"']/g, (m) => ({
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, (m) => ({
       '&': '&amp;',
       '<': '&lt;',
       '>': '&gt;',

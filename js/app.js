@@ -41,8 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form Fields
   const editRecordId = document.getElementById('editRecordId');
   const fieldDipaId = document.getElementById('fieldDipaId');
-  const fieldDipaSeksi = document.getElementById('fieldDipaSeksi');
-  const fieldDipaTitle = document.getElementById('fieldDipaTitle');
+  // Bug #1 Fix: renamed to match actual DB schema fields
+  const fieldDipaBidang = document.getElementById('fieldDipaBidang') || document.getElementById('fieldDipaSeksi');
+  const fieldDipaNamaRO = document.getElementById('fieldDipaNamaRO') || document.getElementById('fieldDipaTitle');
   const fieldDipaPagu = document.getElementById('fieldDipaPagu');
   const fieldDipaRealisasi = document.getElementById('fieldDipaRealisasi');
   const fieldDipaStatus = document.getElementById('fieldDipaStatus');
@@ -147,6 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openModal(record = null) {
+    // Bug #10 Fix: null-check before reset
+    if (!dipaRecordForm) return;
     dipaRecordForm.reset();
 
     if (record) {
@@ -154,17 +157,18 @@ document.addEventListener('DOMContentLoaded', () => {
       editRecordId.value = record.id;
       fieldDipaId.value = record.id;
       fieldDipaId.disabled = true;
-      fieldDipaSeksi.value = record.category || "Seksi Lantaskim";
-      fieldDipaTitle.value = record.title || "";
+      // Bug #1 Fix: use correct schema fields `bidang_bagian` and `nama_ro`
+      if (fieldDipaBidang) fieldDipaBidang.value = record.bidang_bagian || "BagTUM";
+      if (fieldDipaNamaRO) fieldDipaNamaRO.value = record.nama_ro || "";
       fieldDipaPagu.value = record.pagu || 0;
-      fieldDipaRealisasi.value = record.value || 0;
-      fieldDipaStatus.value = record.status || "Terverifikasi";
+      fieldDipaRealisasi.value = record.realisasi || 0;  // Bug #1 Fix: was record.value
+      fieldDipaStatus.value = record.status || "Sangat Baik";
       fieldDipaDate.value = record.date || new Date().toISOString().split('T')[0];
     } else {
       dipaModalTitle.innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5 text-immi-blue"></i> Tambah Realisasi DIPA`;
       editRecordId.value = "";
       fieldDipaId.disabled = false;
-      fieldDipaId.value = `DIPA-BBL-${Math.floor(100 + Math.random() * 900)}`;
+      fieldDipaId.value = `RO-${String(Math.floor(100 + Math.random() * 900)).padStart(3, '0')}`;
       fieldDipaDate.value = new Date().toISOString().split('T')[0];
     }
 
@@ -186,12 +190,13 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
 
       const isEdit = !!editRecordId.value;
+      // Bug #1 Fix: map form fields to correct DatabaseManager schema
       const recordData = {
         id: fieldDipaId.value.trim(),
-        title: fieldDipaTitle.value.trim(),
-        category: fieldDipaSeksi.value,
+        nama_ro: fieldDipaNamaRO ? fieldDipaNamaRO.value.trim() : '',
+        bidang_bagian: fieldDipaBidang ? fieldDipaBidang.value : 'BagTUM',
         pagu: parseFloat(fieldDipaPagu.value) || 0,
-        value: parseFloat(fieldDipaRealisasi.value) || 0,
+        realisasi: parseFloat(fieldDipaRealisasi.value) || 0,  // Bug #1 Fix: was `value`
         status: fieldDipaStatus.value,
         date: fieldDipaDate.value
       };
@@ -472,13 +477,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       paginatedItems.forEach(item => {
         const pagu = item.pagu || 0;
-        const realisasi = item.value || 0;
+        // Bug #1 Fix: was `item.value` — DB stores it as `item.realisasi`
+        const realisasi = item.realisasi || 0;
         const pct = pagu > 0 ? ((realisasi / pagu) * 100).toFixed(1) : 0;
 
+        // Bug #1 Fix: status values now match DB schema
         let statusBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-        if (item.status === "Dalam Proses" || item.status === "Processing") {
+        if (item.status === "Optimal") {
           statusBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
-        } else if (item.status === "Pending") {
+        } else if (item.status === "Perlu Dorongan") {
           statusBadgeClass = "bg-rose-50 text-rose-700 border-rose-200";
         }
 
@@ -488,10 +495,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="p-3.5 font-mono font-bold text-immi-blue">${escapeHtml(item.id)}</td>
           <td class="p-3.5">
             <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px] border border-slate-200">
-              ${escapeHtml(item.category || "Seksi Lantaskim")}
+              ${escapeHtml(item.bidang_bagian || 'BagTUM')}
             </span>
           </td>
-          <td class="p-3.5 font-semibold text-slate-900">${escapeHtml(item.title)}</td>
+          <td class="p-3.5 font-semibold text-slate-900">${escapeHtml(item.nama_ro || item.kode_ro || '')}</td>
           <td class="p-3.5 text-right font-mono font-medium">Rp ${pagu.toLocaleString('id-ID')}</td>
           <td class="p-3.5 text-right font-mono font-bold text-emerald-700">Rp ${realisasi.toLocaleString('id-ID')}</td>
           <td class="p-3.5 text-center font-mono font-bold text-immi-goldDark">${pct}%</td>

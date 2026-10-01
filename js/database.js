@@ -273,7 +273,11 @@ window.DatabaseManager = (function() {
     const persentase = pagu > 0 ? parseFloat(((realisasi / pagu) * 100).toFixed(2)) : 0;
     const status = persentase >= 80 ? "Sangat Baik" : persentase >= 50 ? "Optimal" : "Perlu Dorongan";
 
-    const nextIdNum = records.length + 1;
+    // Bug #9 Fix: use max existing RO number instead of records.length to avoid duplicate IDs after deletions
+    const existingNums = records
+      .map(r => parseInt((r.id || '').replace(/\D/g, ''), 10))
+      .filter(n => !isNaN(n));
+    const nextIdNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : records.length + 1;
     const idFormatted = `RO-${String(nextIdNum).padStart(3, '0')}`;
 
     const newRecord = {

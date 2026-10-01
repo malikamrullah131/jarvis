@@ -83,8 +83,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 method="POST"
             )
 
-            # Timeout di-set None (menunggu AI n8n selesai tanpa terputus)
-            with urllib.request.urlopen(req, timeout=None) as resp:
+            # Bug #11 Fix: timeout=None risks hanging the server thread forever if n8n is unreachable.
+            # 120 seconds is generous for AI processing while still protecting against infinite hangs.
+            with urllib.request.urlopen(req, timeout=120) as resp:
                 resp_body = resp.read()
                 self.send_response(resp.status)
                 self._send_cors_headers()
@@ -119,7 +120,7 @@ print("=" * 65)
 print(f" Server Lokal        : http://localhost:{PORT}")
 print(f" Akses dari HP/PC    : http://{local_ip}:{PORT}")
 print(f" Proxy n8n           : http://localhost:{PORT}/proxy/n8n")
-print(" Konfigurasi Timeout : DISABLED (Full Otomatis sampai AI selesai)")
+print(" Konfigurasi Timeout : 120 detik (Bug #11 Fix: cegah hang permanen)")
 print("=" * 65)
 
 webbrowser.open(f"http://localhost:{PORT}")

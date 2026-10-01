@@ -13,6 +13,9 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
 
+  <!-- Bug #13 Fix: Load external stylesheet that was previously unlinked -->
+  <link rel="stylesheet" href="css/styles.css">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -226,6 +229,27 @@
       )
     );
 
+    const IconRefreshCw = (props) => (
+      LucideIcon({ name: 'refresh-cw', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+          <path d="M8 16H3v5" />
+        </svg>
+      )
+    );
+
+    const IconPrinter = (props) => (
+      LucideIcon({ name: 'printer', ...props }) || (
+        <svg className={props.className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect width="12" height="8" x="6" y="14" />
+        </svg>
+      )
+    );
+
 
     // --- Data Definitions (Berdasarkan Laporan Kinerja Penyerapan Anggaran Q3 - 18 September 2026) ---
     const DIVISION_DATA = {
@@ -315,7 +339,7 @@
       doklan: {
         id: 'doklan',
         name: 'Bidang Dokumen Perjalanan, Izin Tinggal & Status Keimigrasian',
-        shortName: 'Doklanianstak',
+        shortName: 'Doklan',
         program: 'Program BF.6161',
         code: 'BID-DOKLAN',
         pagu: 1020013000,
@@ -342,7 +366,7 @@
       gakkum: {
         id: 'gakkum',
         name: 'Bidang Penegakan Hukum dan Kepatuhan Internal',
-        shortName: 'Gakkum & Patnal',
+        shortName: 'Gakkum',
         program: 'Program BF.6161',
         code: 'BID-GAKKUM',
         pagu: 2688976000,
@@ -412,7 +436,10 @@
 
     // Google Sheet Live Connection Config
     const SPREADSHEET_ID = "1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0";
-    const GOOGLE_API_KEY = "AIzaSyBELhPcX23XGJsnxiFdZezM-Zjh7coMKaY";
+    // Bug #6 Fix: API key removed from source code for security.
+    // For production, inject via server-side or environment variable.
+    // For local dev, paste your key here (never commit to public repos).
+    const GOOGLE_API_KEY = ""; // TODO: set your Google Sheets API key securely
     const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0/export?format=csv`;
 
     const parseAmount = (val) => {
@@ -479,7 +506,7 @@
       }).format(amount);
     };
 
-    function AnalisisROView({ divisionData, formatCurrency }) {
+    function AnalisisROView({ divisionData, formatCurrency, onOpenPrintModal }) {
       const [filterBidang, setFilterBidang] = React.useState('all');
       const [searchTerm, setSearchTerm] = React.useState('');
       const [sortBy, setSortBy] = React.useState('persentase');
@@ -723,6 +750,15 @@
                 <option value="pagu">Urutkan: Alokasi Pagu</option>
                 <option value="realisasi">Urutkan: Total Realisasi</option>
               </select>
+
+              {/* Cetak PDF Button */}
+              <button
+                onClick={onOpenPrintModal}
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-[#002147] hover:bg-[#003366] rounded-xl transition shadow-xs cursor-pointer"
+              >
+                <IconPrinter className="w-3.5 h-3.5" />
+                <span>Cetak PDF</span>
+              </button>
             </div>
           </div>
 
@@ -792,6 +828,805 @@
       );
     }
 
+    function LaporanAnggaranView({ divisionData, summaryData, formatCurrency, onOpenPrintModal }) {
+      const pieRealisasiVsSisaRef = React.useRef(null);
+      const pieSisaPerBidangRef = React.useRef(null);
+      const pieRealisasiInstance = React.useRef(null);
+      const pieSisaInstance = React.useRef(null);
+
+      const bidangList = React.useMemo(() => [
+        { id: 'bagtum', ...divisionData.bagtum },
+        { id: 'doklan', ...divisionData.doklan },
+        { id: 'gakkum', ...divisionData.gakkum }
+      ], [divisionData]);
+
+      // 1. Pie Chart: Total Realisasi vs Sisa Anggaran (Kanwil)
+      React.useEffect(() => {
+        if (!pieRealisasiVsSisaRef.current || typeof Chart === 'undefined') return;
+        if (pieRealisasiInstance.current) pieRealisasiInstance.current.destroy();
+
+        const ctx = pieRealisasiVsSisaRef.current.getContext('2d');
+        const realisasiVal = summaryData.realisasiTotal || 0;
+        const sisaVal = summaryData.sisaTotal || 0;
+
+        pieRealisasiInstance.current = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: ['Total Realisasi', 'SISA ANGGARAN (HIGHLIGHTED)'],
+            datasets: [{
+              data: [realisasiVal, sisaVal],
+              backgroundColor: ['#06B6D4', '#F59E0B'],
+              borderColor: ['#FFFFFF', '#FFFFFF'],
+              borderWidth: 3,
+              hoverOffset: 12
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { size: 12, weight: 'bold' }, usePointStyle: true }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const val = ctx.raw;
+                    const total = realisasiVal + sisaVal;
+                    const pct = total > 0 ? ((val / total) * 100).toFixed(2) : 0;
+                    return ` ${ctx.label}: ${formatCurrency(val)} (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        return () => {
+          if (pieRealisasiInstance.current) pieRealisasiInstance.current.destroy();
+        };
+      }, [summaryData, formatCurrency]);
+
+      // 2. Pie Chart: Breakdown Sisa Anggaran Per Bidang
+      React.useEffect(() => {
+        if (!pieSisaPerBidangRef.current || typeof Chart === 'undefined') return;
+        if (pieSisaInstance.current) pieSisaInstance.current.destroy();
+
+        const ctx = pieSisaPerBidangRef.current.getContext('2d');
+        const labels = bidangList.map(b => b.name);
+        const dataSisa = bidangList.map(b => b.sisa || 0);
+
+        pieSisaInstance.current = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: dataSisa,
+              backgroundColor: ['#3B82F6', '#10B981', '#EC4899'],
+              borderWidth: 3,
+              borderColor: '#FFFFFF',
+              hoverOffset: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { size: 11, weight: 'bold' }, usePointStyle: true }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => ` Sisa ${ctx.label}: ${formatCurrency(ctx.raw)}`
+                }
+              }
+            },
+            cutout: '55%'
+          }
+        });
+
+        return () => {
+          if (pieSisaInstance.current) pieSisaInstance.current.destroy();
+        };
+      }, [bidangList, formatCurrency]);
+
+      const handlePrint = () => {
+        window.print();
+      };
+
+      const sisaPct = (100 - (summaryData.persentaseTotal || 0)).toFixed(2);
+
+      return (
+        <div className="space-y-6">
+          {/* Header Controls & Print */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-[#002147] tracking-tight flex items-center gap-2">
+                <span>📄 Rekapitulasi & Highlight Sisa Anggaran Seluruh Bidang</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Laporan komprehensif Total Pagu, Total Realisasi, dan pemantauan khusus Sisa Anggaran Kanwil Imigrasi Babel.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onOpenPrintModal}
+                className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-[#002147] hover:bg-[#003366] rounded-xl transition shadow-sm cursor-pointer"
+              >
+                <IconPrinter className="w-4 h-4" />
+                <span>Cetak PDF Laporan</span>
+              </button>
+            </div>
+          </div>
+
+          {/* KPI CARDS GRID (PAGU, REALISASI, & HIGHLIGHT SISA ANGGARAN HEROCARD) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* Card 1: Total Pagu */}
+            <div className="lg:col-span-3 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    TOTAL PAGU ANGGARAN
+                  </span>
+                  <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+                    <IconWallet className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-xl font-black text-slate-900 tracking-tight">
+                    {summaryData.paguFormatted}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 font-semibold">Total DIPA TA 2026</p>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+                Konsolidasi 3 Bidang Kerja Kanwil
+              </div>
+            </div>
+
+            {/* Card 2: Total Realisasi */}
+            <div className="lg:col-span-3 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    TOTAL REALISASI ANGGARAN
+                  </span>
+                  <div className="p-2.5 rounded-xl bg-cyan-50 text-cyan-600">
+                    <IconTrendingUp className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-slate-900 tracking-tight">
+                      {summaryData.realisasiFormatted}
+                    </span>
+                  </div>
+                  <span className="inline-block mt-1 text-xs font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-md border border-cyan-200">
+                    Terpakai: {summaryData.persentaseTotal}%
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+                Capaian serapan kumulatif
+              </div>
+            </div>
+
+            {/* Card 3: HIGHLIGHT SISA ANGGARAN (HERO CARD - LEBIH BESAR & PROMINENT) */}
+            <div className="lg:col-span-6 bg-gradient-to-br from-[#002147] via-[#002B5B] to-[#091E3A] rounded-2xl p-6 border-2 border-amber-400/60 shadow-xl text-white relative overflow-hidden flex flex-col justify-between">
+              {/* Decorative background glow */}
+              <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950 uppercase tracking-wider shadow-sm">
+                    <IconCoins className="w-3.5 h-3.5" /> HIGHLIGHT SISA ANGGARAN
+                  </span>
+                  <span className="text-xs font-bold text-amber-300 bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-500/30">
+                    Sisa: {sisaPct}%
+                  </span>
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">
+                    Total Dana Belum Terserap (Seluruh Bidang)
+                  </p>
+                  <div className="text-3xl md:text-4xl font-black text-amber-300 tracking-tight mt-1">
+                    {summaryData.sisaFormatted}
+                  </div>
+                </div>
+              </div>
+
+              {/* Breakdown Sisa Per Bidang inside Highlight Card */}
+              <div className="mt-5 pt-4 border-t border-slate-700/80 grid grid-cols-3 gap-2">
+                {bidangList.map(b => (
+                  <div key={b.id} className="bg-white/10 backdrop-blur-xs p-2.5 rounded-xl border border-white/10">
+                    <p className="text-[10px] font-bold text-slate-300 truncate">{b.shortName}</p>
+                    <p className="text-xs font-black text-amber-200 mt-0.5">{formatCurrency(b.sisa)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* PIE CHARTS SECTION */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Pie Chart 1: Realisasi vs Sisa */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Pie Chart: Realisasi vs Sisa Anggaran</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                    Highlight Sisa
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Visualisasi porsi anggaran terpakai dibanding sisa alokasi DIPA Kanwil.
+                </p>
+              </div>
+              <div className="h-64 my-4 relative flex items-center justify-center">
+                <canvas ref={pieRealisasiVsSisaRef} />
+              </div>
+              <div className="text-center text-xs font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200">
+                ⚠️ Sisa Anggaran: {summaryData.sisaFormatted} ({sisaPct}%)
+              </div>
+            </div>
+
+            {/* Pie Chart 2: Sisa Per Bidang */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Pie Chart: Sebaran Sisa Anggaran Per Bidang</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                    3 Bidang Kerja
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Proporsi sisa anggaran yang belum terserap di BagTUM, Doklan, dan Gakkum.
+                </p>
+              </div>
+              <div className="h-64 my-4 relative flex items-center justify-center">
+                <canvas ref={pieSisaPerBidangRef} />
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                {bidangList.map((b) => (
+                  <div key={b.id} className="p-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                    <p className="font-bold text-slate-700 truncate">{b.shortName}</p>
+                    <p className="font-black text-slate-900">{((b.sisa / (summaryData.sisaTotal || 1)) * 100).toFixed(1)}%</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* TABEL REKAPITULASI LAPORAN SELURUH BIDANG */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Tabel Rekapitulasi Penyerapan & Sisa Anggaran</h3>
+                <p className="text-xs text-slate-500">Rincian per perbagian / divisi kerja Kanwil Imigrasi Babel</p>
+              </div>
+              <span className="text-xs font-semibold text-slate-500">Tahun Anggaran 2026</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4">Bidang / Bagian Kerja</th>
+                    <th className="px-6 py-4 text-right">Total Pagu (Rp)</th>
+                    <th className="px-6 py-4 text-right">Realisasi (Rp)</th>
+                    <th className="px-6 py-4 text-center">% Capaian</th>
+                    <th className="px-6 py-4 text-right bg-amber-100/70 text-amber-900 border-x border-amber-200">
+                      ⭐ SISA ANGGARAN (RP)
+                    </th>
+                    <th className="px-6 py-4 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {bidangList.map((bid) => {
+                    const isHigh = bid.persentase >= 80;
+                    const isMid = bid.persentase >= 50 && bid.persentase < 80;
+
+                    return (
+                      <tr key={bid.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-3">
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: bid.themeColor }} />
+                          <div>
+                            <div>{bid.name}</div>
+                            <span className="text-xs font-normal text-slate-500">{bid.roList ? bid.roList.length : 0} Rincian Output (RO)</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right font-mono font-medium text-slate-600">
+                          {formatCurrency(bid.pagu)}
+                        </td>
+                        <td className="px-6 py-4 text-right font-mono font-bold text-cyan-700">
+                          {formatCurrency(bid.realisasi)}
+                        </td>
+                        <td className="px-6 py-4 text-center font-bold">
+                          <span className={`px-2.5 py-1 rounded-full text-xs ${
+                            isHigh ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            isMid ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                            'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}>
+                            {bid.persentase.toFixed(2)}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right font-mono font-black text-amber-900 bg-amber-50/80 border-x border-amber-200/80 text-base">
+                          {formatCurrency(bid.sisa)}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="text-xs font-semibold text-slate-600">
+                            {isHigh ? '🟢 Penyerapan Baik' : isMid ? '🟡 Perlu Dorongan' : '🔴 Perhatian Khusus'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-900 text-white font-bold text-sm">
+                  <tr>
+                    <td className="px-6 py-4 uppercase text-xs tracking-wider text-slate-300">TOTAL KANWIL BABEL</td>
+                    <td className="px-6 py-4 text-right font-mono text-slate-200">{summaryData.paguFormatted}</td>
+                    <td className="px-6 py-4 text-right font-mono text-cyan-300">{summaryData.realisasiFormatted}</td>
+                    <td className="px-6 py-4 text-center font-mono text-cyan-400">{summaryData.persentaseTotal}%</td>
+                    <td className="px-6 py-4 text-right font-mono text-amber-300 text-base bg-slate-950 border-x border-amber-500/40">
+                      {summaryData.sisaFormatted}
+                    </td>
+                    <td className="px-6 py-4 text-center text-xs text-amber-400">Total Sisa</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function PrintExportModal({ isOpen, onClose, summaryData, divisionData, formatCurrency }) {
+      if (!isOpen) return null;
+
+      const [selectedOptions, setSelectedOptions] = React.useState({
+        dash_gauge: true,
+        dash_bidang_summary: true,
+        dash_ro_table: true,
+        lap_hero_sisa: true,
+        lap_pie_vs_sisa: true,
+        lap_pie_sisa_bidang: true,
+        lap_table_rekap: true,
+        an_bar_ranking: true,
+        an_doughnut_status: true,
+        an_bar_top5: true,
+        kop_surat: true,
+        lembar_pengesahan: true
+      });
+
+      const toggleOption = (key) => {
+        setSelectedOptions(prev => ({ ...prev, [key]: !prev[key] }));
+      };
+
+      const selectAll = (status) => {
+        const updated = {};
+        Object.keys(selectedOptions).forEach(k => {
+          updated[k] = status;
+        });
+        setSelectedOptions(updated);
+      };
+
+      const handlePrintExecution = () => {
+        const printWindow = window.open('', '_blank', 'width=1050,height=800');
+        if (!printWindow) {
+          alert("Pop-up diblokir browser. Harap izinkan pop-up untuk mencetak dokumen PDF.");
+          return;
+        }
+
+        const dateStr = new Date().toLocaleDateString('id-ID', {
+          day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+        let html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Laporan Kinerja & Penyerapan Anggaran SIKAP - Kanwil Imigrasi Babel</title>
+            <style>
+              @page { size: A4 portrait; margin: 15mm; }
+              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; font-size: 11pt; line-height: 1.4; margin: 0; padding: 20px; }
+              .kop-container { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #002147; padding-bottom: 12px; margin-bottom: 20px; text-align: center; }
+              .kop-title { text-align: center; width: 100%; }
+              .kop-title h2 { margin: 0; font-size: 13pt; text-transform: uppercase; color: #002147; font-weight: 800; }
+              .kop-title h3 { margin: 2px 0 0 0; font-size: 11pt; font-weight: 700; color: #334155; }
+              .kop-title p { margin: 2px 0 0 0; font-size: 9pt; color: #64748b; }
+              .section-title { background: #002147; color: white; padding: 6px 12px; font-size: 11pt; font-weight: bold; border-radius: 4px; margin-top: 24px; margin-bottom: 12px; }
+              .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+              .card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #ffffff; }
+              .card-title { font-size: 10pt; font-weight: bold; color: #475569; margin-bottom: 8px; }
+              .highlight-card { background: #002147; color: white; border: 2px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+              .highlight-title { color: #fbbf24; font-size: 10pt; font-weight: bold; text-transform: uppercase; }
+              .highlight-amount { font-size: 22pt; font-weight: 900; color: #fde68a; margin: 6px 0; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; font-size: 9.5pt; }
+              th, td { border: 1px solid #cbd5e1; padding: 7px 10px; }
+              th { background-color: #f1f5f9; color: #0f172a; font-weight: bold; text-align: left; }
+              .text-right { text-align: right; }
+              .text-center { text-align: center; }
+              .bg-amber { background-color: #fef3c7; font-weight: bold; }
+              .ttd-container { display: flex; justify-content: space-between; margin-top: 40px; page-break-inside: avoid; }
+              .ttd-box { text-align: center; width: 40%; font-size: 10pt; }
+              .no-print-btn { background: #002147; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
+              @media print { .no-print-btn { display: none; } }
+            </style>
+          </head>
+          <body>
+            <button class="no-print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF Sekarang</button>
+        `;
+
+        if (selectedOptions.kop_surat) {
+          html += `
+            <div class="kop-container">
+              <div class="kop-title">
+                <h2>KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN REPUBLIK INDONESIA</h2>
+                <h3>KANTOR WILAYAH BANGKA BELITUNG</h3>
+                <p>Jalan Komplek Perkantoran Imigrasi, Pangkalpinang • Telepon / Fax: (0717) 42123</p>
+                <p style="font-weight:bold; margin-top: 4px; color:#002147;">LAPORAN KINERJA & PENYERAPAN ANGGARAN (SIKAP)</p>
+              </div>
+            </div>
+          `;
+        }
+
+        // Section 1: Dashboard Utama
+        if (selectedOptions.dash_gauge || selectedOptions.dash_bidang_summary || selectedOptions.dash_ro_table) {
+          html += `<div class="section-title">1. DASHBOARD UTAMA & RINGKASAN KINERJA</div>`;
+          if (selectedOptions.dash_gauge || selectedOptions.dash_bidang_summary) {
+            html += `<div class="grid-2">`;
+            html += `
+              <div class="card">
+                <div class="card-title">TOTAL PAGU DIPA 2026</div>
+                <div style="font-size: 16pt; font-weight: 900; color:#0f172a;">${summaryData.paguFormatted}</div>
+                <div style="font-size: 8.5pt; color:#64748b;">3 Bidang Kerja Kanwil</div>
+              </div>
+              <div class="card">
+                <div class="card-title">TOTAL REALISASI (${summaryData.persentaseTotal}%)</div>
+                <div style="font-size: 16pt; font-weight: 900; color:#0284c7;">${summaryData.realisasiFormatted}</div>
+                <div style="font-size: 8.5pt; color:#0284c7; font-weight:bold;">Status: Penyerapan On-Track</div>
+              </div>
+            `;
+            html += `</div>`;
+          }
+        }
+
+        // Section 2: Laporan Anggaran & Highlight Sisa Anggaran
+        if (selectedOptions.lap_hero_sisa || selectedOptions.lap_pie_vs_sisa || selectedOptions.lap_pie_sisa_bidang || selectedOptions.lap_table_rekap) {
+          html += `<div class="section-title">2. LAPORAN REKAPITULASI & HIGHLIGHT SISA ANGGARAN</div>`;
+
+          if (selectedOptions.lap_hero_sisa) {
+            html += `
+              <div class="highlight-card">
+                <div class="highlight-title">⭐ HIGHLIGHT SISA ANGGARAN KANWIL (BELUM TERSERAP)</div>
+                <div class="highlight-amount">${summaryData.sisaFormatted}</div>
+                <div style="font-size: 9pt; color:#cbd5e1;">Proporsi Sisa: ${(100 - summaryData.persentaseTotal).toFixed(2)}% dari Total DIPA</div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                  <div style="background:rgba(255,255,255,0.15); padding:6px 10px; border-radius:4px; font-size:9pt;">
+                    <strong>BagTUM:</strong> ${formatCurrency(divisionData.bagtum?.sisa || 0)}
+                  </div>
+                  <div style="background:rgba(255,255,255,0.15); padding:6px 10px; border-radius:4px; font-size:9pt;">
+                    <strong>Doklan:</strong> ${formatCurrency(divisionData.doklan?.sisa || 0)}
+                  </div>
+                  <div style="background:rgba(255,255,255,0.15); padding:6px 10px; border-radius:4px; font-size:9pt;">
+                    <strong>Gakkum:</strong> ${formatCurrency(divisionData.gakkum?.sisa || 0)}
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
+          if (selectedOptions.lap_table_rekap) {
+            html += `
+              <table>
+                <thead>
+                  <tr>
+                    <th>Bidang / Bagian Kerja</th>
+                    <th class="text-right">Total Pagu (Rp)</th>
+                    <th class="text-right">Realisasi (Rp)</th>
+                    <th class="text-center">% Capaian</th>
+                    <th class="text-right bg-amber">Sisa Anggaran (Rp)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Bagian Tata Usaha dan Umum (BagTUM)</strong></td>
+                    <td class="text-right">${formatCurrency(divisionData.bagtum?.pagu || 0)}</td>
+                    <td class="text-right">${formatCurrency(divisionData.bagtum?.realisasi || 0)}</td>
+                    <td class="text-center">${(divisionData.bagtum?.persentase || 0).toFixed(2)}%</td>
+                    <td class="text-right bg-amber">${formatCurrency(divisionData.bagtum?.sisa || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Bidang Dokumen Perjalanan & Status Keimigrasian (Doklan)</strong></td>
+                    <td class="text-right">${formatCurrency(divisionData.doklan?.pagu || 0)}</td>
+                    <td class="text-right">${formatCurrency(divisionData.doklan?.realisasi || 0)}</td>
+                    <td class="text-center">${(divisionData.doklan?.persentase || 0).toFixed(2)}%</td>
+                    <td class="text-right bg-amber">${formatCurrency(divisionData.doklan?.sisa || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Bidang Penegakan Hukum & Kepatuhan Internal (Gakkum)</strong></td>
+                    <td class="text-right">${formatCurrency(divisionData.gakkum?.pagu || 0)}</td>
+                    <td class="text-right">${formatCurrency(divisionData.gakkum?.realisasi || 0)}</td>
+                    <td class="text-center">${(divisionData.gakkum?.persentase || 0).toFixed(2)}%</td>
+                    <td class="text-right bg-amber">${formatCurrency(divisionData.gakkum?.sisa || 0)}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr style="background:#002147; color:white; font-weight:bold;">
+                    <td>TOTAL KANWIL BABEL</td>
+                    <td class="text-right">${summaryData.paguFormatted}</td>
+                    <td class="text-right">${summaryData.realisasiFormatted}</td>
+                    <td class="text-center">${summaryData.persentaseTotal}%</td>
+                    <td class="text-right" style="color:#fde68a;">${summaryData.sisaFormatted}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            `;
+          }
+        }
+
+        // Section 3: Analisis RO
+        if (selectedOptions.an_bar_ranking || selectedOptions.an_doughnut_status || selectedOptions.an_bar_top5) {
+          html += `<div class="section-title">3. ANALISIS PERFORMA RINCAN OUTPUT (RO)</div>`;
+          html += `<p style="font-size:9.5pt; color:#475569;">Evaluasi capaian realisasi fisik dan anggaran per Rincian Output (RO) kegiatan Kanwil Imigrasi Babel.</p>`;
+        }
+
+        // Section 4: Signature
+        if (selectedOptions.lembar_pengesahan) {
+          html += `
+            <div class="ttd-container">
+              <div class="ttd-box">
+                <p>Mengetahui,<br/><strong>Pejabat Pembuat Komitmen (PPK)</strong></p>
+                <div style="height: 50px;"></div>
+                <p><u>________________________</u><br/>NIP. 19820415 200501 1 002</p>
+              </div>
+              <div class="ttd-box">
+                <p>Pangkalpinang, ${dateStr}<br/><strong>Kepala Kantor Wilayah</strong></p>
+                <div style="height: 50px;"></div>
+                <p><u>________________________</u><br/>NIP. 19780912 200112 1 001</p>
+              </div>
+            </div>
+          `;
+        }
+
+        html += `
+          </body>
+          </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        setTimeout(() => {
+          try {
+            printWindow.focus();
+            printWindow.print();
+          } catch (e) {
+            console.warn("Print notice:", e);
+          }
+        }, 500);
+        onClose();
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 relative transform transition-all my-8">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-50 text-amber-900 rounded-2xl border border-amber-200">
+                  <IconPrinter className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-[#002147] tracking-tight">
+                    Cetak Laporan PDF (Custom Charts & Content)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Pilih grafik (chart) dan modul data yang ingin dimasukkan ke dalam dokumen PDF.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center justify-between my-4 px-1">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Pilihan Komponen Dokumen
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => selectAll(true)}
+                  className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 hover:bg-blue-100 transition cursor-pointer"
+                >
+                  ✓ Pilih Semua
+                </button>
+                <button
+                  onClick={() => selectAll(false)}
+                  className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-200 transition cursor-pointer"
+                >
+                  ✕ Hapus Semua
+                </button>
+              </div>
+            </div>
+
+            {/* Options List */}
+            <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2">
+              {/* Group 1: Dashboard Utama */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <p className="text-xs font-black text-[#002147] uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
+                  <IconLayoutDashboard className="w-3.5 h-3.5" /> 1. Menu Dashboard Utama
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer hover:text-slate-900">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.dash_gauge}
+                      onChange={() => toggleOption('dash_gauge')}
+                      className="w-4 h-4 text-[#002147] rounded focus:ring-0"
+                    />
+                    <span>Gauge Circular Chart (Penyerapan Total)</span>
+                  </label>
+                  <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer hover:text-slate-900">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.dash_bidang_summary}
+                      onChange={() => toggleOption('dash_bidang_summary')}
+                      className="w-4 h-4 text-[#002147] rounded focus:ring-0"
+                    />
+                    <span>Kartu Summary 3 Bidang Kerja</span>
+                  </label>
+                  <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer hover:text-slate-900">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.dash_ro_table}
+                      onChange={() => toggleOption('dash_ro_table')}
+                      className="w-4 h-4 text-[#002147] rounded focus:ring-0"
+                    />
+                    <span>Tabel Detail Rincian Output (RO)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Group 2: Laporan Anggaran */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200">
+                <p className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
+                  <IconFileSpreadsheet className="w-3.5 h-3.5 text-amber-700" /> 2. Menu Laporan Anggaran
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <label className="flex items-center gap-2 font-medium text-amber-950 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.lap_hero_sisa}
+                      onChange={() => toggleOption('lap_hero_sisa')}
+                      className="w-4 h-4 text-amber-600 rounded focus:ring-0"
+                    />
+                    <span>Hero Card Highlight Sisa Anggaran (Jumbo)</span>
+                  </label>
+                  <label className="flex items-center gap-2 font-medium text-amber-950 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.lap_pie_vs_sisa}
+                      onChange={() => toggleOption('lap_pie_vs_sisa')}
+                      className="w-4 h-4 text-amber-600 rounded focus:ring-0"
+                    />
+                    <span>Pie Chart 1: Realisasi vs Sisa Anggaran</span>
+                  </label>
+                  <label className="flex items-center gap-2 font-medium text-amber-950 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.lap_pie_sisa_bidang}
+                      onChange={() => toggleOption('lap_pie_sisa_bidang')}
+                      className="w-4 h-4 text-amber-600 rounded focus:ring-0"
+                    />
+                    <span>Pie Chart 2: Sebaran Sisa Per Bidang</span>
+                  </label>
+                  <label className="flex items-center gap-2 font-medium text-amber-950 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.lap_table_rekap}
+                      onChange={() => toggleOption('lap_table_rekap')}
+                      className="w-4 h-4 text-amber-600 rounded focus:ring-0"
+                    />
+                    <span>Tabel Rekapitulasi Laporan Seluruh Bidang</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Group 3: Analisis RO */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <p className="text-xs font-black text-[#002147] uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
+                  <IconPieChart className="w-3.5 h-3.5" /> 3. Menu Analisis RO
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.an_bar_ranking}
+                      onChange={() => toggleOption('an_bar_ranking')}
+                      className="w-4 h-4 text-[#002147] rounded focus:ring-0"
+                    />
+                    <span>Horizontal Bar Chart (Ranking Performa RO)</span>
+                  </label>
+                  <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.an_doughnut_status}
+                      onChange={() => toggleOption('an_doughnut_status')}
+                      className="w-4 h-4 text-[#002147] rounded focus:ring-0"
+                    />
+                    <span>Doughnut Chart (Distribusi Status RO)</span>
+                  </label>
+                  <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.an_bar_top5}
+                      onChange={() => toggleOption('an_bar_top5')}
+                      className="w-4 h-4 text-[#002147] rounded focus:ring-0"
+                    />
+                    <span>Grouped Bar Chart (Top 5 Pagu vs Realisasi)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Group 4: Kop & Signature */}
+              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200/80">
+                <p className="text-xs font-black text-blue-900 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
+                  ✒️ 4. Kelengkapan Dokumen Kedinasan
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <label className="flex items-center gap-2 font-medium text-blue-950 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.kop_surat}
+                      onChange={() => toggleOption('kop_surat')}
+                      className="w-4 h-4 text-blue-700 rounded focus:ring-0"
+                    />
+                    <span>Kop Surat Resmi Kemenimipas Kanwil Babel</span>
+                  </label>
+                  <label className="flex items-center gap-2 font-medium text-blue-950 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.lembar_pengesahan}
+                      onChange={() => toggleOption('lembar_pengesahan')}
+                      className="w-4 h-4 text-blue-700 rounded focus:ring-0"
+                    />
+                    <span>Kolom Tanda Tangan (PPK & Kepala Kanwil)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handlePrintExecution}
+                className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-[#002147] hover:bg-[#003366] rounded-xl transition shadow-md cursor-pointer"
+              >
+                <IconPrinter className="w-4 h-4" />
+                <span>Cetak Dokumen PDF Sekarang</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function SikapApp() {
       const [selectedBidang, setSelectedBidang] = useState('bagtum');
       const [activeNav, setActiveNav] = useState('dashboard');
@@ -801,6 +1636,8 @@
       const [isSyncing, setIsSyncing] = useState(false);
       const [lastSyncTime, setLastSyncTime] = useState('Otomatis');
       const [connectionMode, setConnectionMode] = useState('Live (Syncing...)');
+      const [autoRefresh, setAutoRefresh] = useState(true);
+      const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
       const fetchGoogleSheetData = React.useCallback(async () => {
         try {
@@ -920,11 +1757,14 @@
 
       React.useEffect(() => {
         fetchGoogleSheetData();
-        const interval = setInterval(() => {
-          fetchGoogleSheetData();
-        }, 10000);
+        let interval;
+        if (autoRefresh) {
+          interval = setInterval(() => {
+            fetchGoogleSheetData();
+          }, 10000);
+        }
         return () => clearInterval(interval);
-      }, [fetchGoogleSheetData]);
+      }, [fetchGoogleSheetData, autoRefresh]);
 
       const currentBidang = divisionData[selectedBidang] || DIVISION_DATA[selectedBidang];
 
@@ -1060,11 +1900,26 @@
                   className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-[#002147] bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 shadow-xs cursor-pointer"
                   title="Manual Sync Database Google Sheet"
                 >
-                  <span className={isSyncing ? 'animate-spin' : ''}>🔄</span>
+                  <IconRefreshCw className={`w-3.5 h-3.5 text-[#002147] ${isSyncing ? 'animate-spin' : ''}`} />
                   <span>{isSyncing ? 'Memuat Data...' : `Update: ${lastSyncTime}`}</span>
                 </button>
-                <button className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 rounded-xl transition border border-slate-200 shadow-xs">
-                  <IconDownload className="w-3.5 h-3.5 text-slate-500" />
+                <button
+                  onClick={() => setAutoRefresh(v => !v)}
+                  title={autoRefresh ? 'Auto-Refresh Aktif (klik untuk nonaktifkan)' : 'Auto-Refresh Nonaktif (klik untuk aktifkan)'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition border shadow-xs cursor-pointer ${
+                    autoRefresh
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                      : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className={`inline-block w-2 h-2 rounded-full transition-colors ${autoRefresh ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                  <span>{autoRefresh ? 'Auto ON' : 'Auto OFF'}</span>
+                </button>
+                <button
+                  onClick={() => setIsPrintModalOpen(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 rounded-xl transition border border-slate-200 shadow-xs cursor-pointer"
+                >
+                  <IconPrinter className="w-3.5 h-3.5 text-slate-500" />
                   <span>Export Laporan</span>
                 </button>
                 <div className="h-4 w-[1px] bg-slate-200"></div>
@@ -1081,7 +1936,9 @@
             <div className="p-8 space-y-6 max-w-7xl mx-auto w-full">
 
               {activeNav === 'analisis' ? (
-                <AnalisisROView divisionData={divisionData} formatCurrency={formatCurrency} />
+                <AnalisisROView divisionData={divisionData} formatCurrency={formatCurrency} onOpenPrintModal={() => setIsPrintModalOpen(true)} />
+              ) : activeNav === 'laporan' ? (
+                <LaporanAnggaranView divisionData={divisionData} summaryData={summaryData} formatCurrency={formatCurrency} onOpenPrintModal={() => setIsPrintModalOpen(true)} />
               ) : (
                 <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -1542,6 +2399,15 @@
               )}
             </div>
           </main>
+
+          {/* Modal Cetak PDF Custom */}
+          <PrintExportModal
+            isOpen={isPrintModalOpen}
+            onClose={() => setIsPrintModalOpen(false)}
+            summaryData={summaryData}
+            divisionData={divisionData}
+            formatCurrency={formatCurrency}
+          />
         </div>
       );
     }

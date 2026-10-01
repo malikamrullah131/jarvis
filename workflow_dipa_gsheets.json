@@ -1,0 +1,494 @@
+{
+    "name": "DIPA PDF via Telegram Bot to Google Sheets",
+    "nodes": [
+        {
+            "parameters": {
+                "updates": [
+                    "message"
+                ],
+                "additionalFields": {}
+            },
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                0,
+                0
+            ],
+            "id": "telegram-trigger",
+            "name": "Telegram Trigger (Upload PDF)"
+        },
+        {
+            "parameters": {
+                "operation": "getFile",
+                "fileId": "={{ $json.message.document.file_id }}"
+            },
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                200,
+                0
+            ],
+            "id": "get-telegram-file",
+            "name": "Download PDF from Telegram"
+        },
+        {
+            "parameters": {
+                "operation": "pdf"
+            },
+            "type": "n8n-nodes-base.extractFromFile",
+            "typeVersion": 1,
+            "position": [
+                400,
+                0
+            ],
+            "id": "extract-pdf",
+            "name": "Extract Text from PDF"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "Ekstrak seluruh tabel Laporan Ketersediaan Dana Detail dari teks PDF berikut. Ambil nama Satuan Kerja, Periode, Total Pagu Revisi, Total Lock Pagu, serta rincian item anggaran (kode_item, uraian, pagu_revisi, lock_pagu, realisasi_periode_lalu, realisasi_periode_ini, realisasi_sd_periode, persentase, sisa_anggaran). Bersihkan format angka dari titik/koma/kurung.\n\nTeks PDF:\n={{ $json.text }}"
+            },
+            "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+            "typeVersion": 1,
+            "position": [
+                600,
+                0
+            ],
+            "id": "llm-extractor",
+            "name": "LLM Information Extractor"
+        },
+        {
+            "parameters": {
+                "jsCode": "const now = new Date().toISOString();\nconst draftId = Math.floor(1000 + Math.random() * 9000);\n\nreturn {\n  json: {\n    draftId: draftId,\n    satuanKerja: $json.satuan_kerja || \"KANWIL DITJEN IMIGRASI BANGKA BELITUNG\",\n    periode: $json.periode || \"September 2026\",\n    totalPagu: $json.jumlah_seluruhnya?.pagu_revisi || 11710589000,\n    totalLockPagu: $json.jumlah_seluruhnya?.lock_pagu || 0,\n    items: $json.items || [],\n    rawJson: JSON.stringify($json),\n    status: \"PENDING\",\n    tanggal: now\n  }\n};"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                800,
+                0
+            ],
+            "id": "prepare-sheet-data",
+            "name": "Prepare Draft Data"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "Draft_Pending",
+                    "mode": "name"
+                },
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "ID",
+                            "fieldValue": "={{ $json.draftId }}"
+                        },
+                        {
+                            "fieldId": "Satuan Kerja",
+                            "fieldValue": "={{ $json.satuanKerja }}"
+                        },
+                        {
+                            "fieldId": "Periode",
+                            "fieldValue": "={{ $json.periode }}"
+                        },
+                        {
+                            "fieldId": "Total Pagu",
+                            "fieldValue": "={{ $json.totalPagu }}"
+                        },
+                        {
+                            "fieldId": "Total Lock Pagu",
+                            "fieldValue": "={{ $json.totalLockPagu }}"
+                        },
+                        {
+                            "fieldId": "Raw JSON",
+                            "fieldValue": "={{ $json.rawJson }}"
+                        },
+                        {
+                            "fieldId": "Status",
+                            "fieldValue": "={{ $json.status }}"
+                        },
+                        {
+                            "fieldId": "Tanggal",
+                            "fieldValue": "={{ $json.tanggal }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.3,
+            "position": [
+                1000,
+                0
+            ],
+            "id": "gsheet-pending",
+            "name": "Save Draft (Draft_Pending)"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.provider-wa.com/send-message",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "{\n  \"target\": \"081234567890\",\n  \"message\": \"📄 *LAPORAN DIPA BARU (#{{ $node['Prepare Draft Data'].json.draftId }})*\\n\\n*Satker:* {{ $node['Prepare Draft Data'].json.satuanKerja }}\\n*Periode:* {{ $node['Prepare Draft Data'].json.periode }}\\n*Total Pagu:* Rp {{ $node['Prepare Draft Data'].json.totalPagu.toLocaleString('id-ID') }}\\n*Total Lock Pagu:* Rp {{ $node['Prepare Draft Data'].json.totalLockPagu.toLocaleString('id-ID') }}\\n\\n🔗 *Review Web / Google Sheet:* https://docs.google.com/spreadsheets/d/1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0/edit\\n\\n*Balas cepat:*\\nKetik *Y* (Setuju)\\nKetik *N* (Tolak)\"\n}"
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1200,
+                0
+            ],
+            "id": "send-wa-notif",
+            "name": "Kirim WA Notifikasi"
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "admin-callback",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                0,
+                250
+            ],
+            "id": "webhook-admin-action",
+            "name": "Webhook Admin Response (WA/Web)"
+        },
+        {
+            "parameters": {
+                "jsCode": "const text = ($json.body.message || $json.body.action || \"\").toString().trim().toUpperCase();\nconst draftId = $json.body.draft_id || $json.query.id;\n\nlet status = \"UNKNOWN\";\nif ([\"Y\", \"OK\", \"SETUJU\", \"APPROVE\", \"APPROVED\"].includes(text)) {\n  status = \"APPROVED\";\n} else if ([\"N\", \"NO\", \"TOLAK\", \"REJECT\", \"REJECTED\"].includes(text)) {\n  status = \"REJECTED\";\n}\n\nreturn {\n  json: {\n    draftId: parseInt(draftId),\n    status: status,\n    reviewer: $json.body.sender || \"Admin Web\"\n  }\n};"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                200,
+                250
+            ],
+            "id": "parse-action",
+            "name": "Parse Balasan Y/N"
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $json.status }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "APPROVED"
+                        },
+                        {
+                            "value2": "REJECTED"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                400,
+                250
+            ],
+            "id": "switch-approval",
+            "name": "Cek Status"
+        },
+        {
+            "parameters": {
+                "operation": "appendOrUpdate",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "Draft_Pending",
+                    "mode": "name"
+                },
+                "columnToMatchOn": "ID",
+                "valueToMatchOn": "={{ $json.draftId }}",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "Status",
+                            "fieldValue": "APPROVED"
+                        },
+                        {
+                            "fieldId": "Reviewer",
+                            "fieldValue": "={{ $json.reviewer }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.3,
+            "position": [
+                650,
+                180
+            ],
+            "id": "update-sheet-approved",
+            "name": "Update Status APPROVED"
+        },
+        {
+            "parameters": {
+                "fieldToSplitOut": "items",
+                "options": {
+                    "includeOtherFields": true
+                }
+            },
+            "type": "n8n-nodes-base.itemLists",
+            "typeVersion": 3,
+            "position": [
+                850,
+                180
+            ],
+            "id": "split-items",
+            "name": "Split Item Anggaran"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "Data_Resmi",
+                    "mode": "name"
+                },
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "Draft ID",
+                            "fieldValue": "={{ $json.draftId }}"
+                        },
+                        {
+                            "fieldId": "Kode Item",
+                            "fieldValue": "={{ $json.items.kode_item }}"
+                        },
+                        {
+                            "fieldId": "Uraian",
+                            "fieldValue": "={{ $json.items.uraian }}"
+                        },
+                        {
+                            "fieldId": "Pagu Revisi",
+                            "fieldValue": "={{ $json.items.pagu_revisi }}"
+                        },
+                        {
+                            "fieldId": "Lock Pagu",
+                            "fieldValue": "={{ $json.items.lock_pagu }}"
+                        },
+                        {
+                            "fieldId": "Realisasi Periode Lalu",
+                            "fieldValue": "={{ $json.items.realisasi_periode_lalu }}"
+                        },
+                        {
+                            "fieldId": "Realisasi Periode Ini",
+                            "fieldValue": "={{ $json.items.realisasi_periode_ini }}"
+                        },
+                        {
+                            "fieldId": "Realisasi s.d Periode",
+                            "fieldValue": "={{ $json.items.realisasi_sd_periode }}"
+                        },
+                        {
+                            "fieldId": "%",
+                            "fieldValue": "={{ $json.items.persentase }}"
+                        },
+                        {
+                            "fieldId": "Sisa Anggaran",
+                            "fieldValue": "={{ $json.items.sisa_anggaran }}"
+                        },
+                        {
+                            "fieldId": "Tanggal Approved",
+                            "fieldValue": "={{ new Date().toISOString() }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.3,
+            "position": [
+                1050,
+                180
+            ],
+            "id": "save-official-sheet",
+            "name": "Save to Data_Resmi"
+        },
+        {
+            "parameters": {
+                "operation": "appendOrUpdate",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "Draft_Pending",
+                    "mode": "name"
+                },
+                "columnToMatchOn": "ID",
+                "valueToMatchOn": "={{ $json.draftId }}",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "Status",
+                            "fieldValue": "REJECTED"
+                        },
+                        {
+                            "fieldId": "Reviewer",
+                            "fieldValue": "={{ $json.reviewer }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.3,
+            "position": [
+                650,
+                320
+            ],
+            "id": "update-sheet-rejected",
+            "name": "Update Status REJECTED"
+        }
+    ],
+    "connections": {
+        "Telegram Trigger (Upload PDF)": {
+            "main": [
+                [
+                    {
+                        "node": "Download PDF from Telegram",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Download PDF from Telegram": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Text from PDF",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Text from PDF": {
+            "main": [
+                [
+                    {
+                        "node": "LLM Information Extractor",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "LLM Information Extractor": {
+            "main": [
+                [
+                    {
+                        "node": "Prepare Draft Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Prepare Draft Data": {
+            "main": [
+                [
+                    {
+                        "node": "Save Draft (Draft_Pending)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save Draft (Draft_Pending)": {
+            "main": [
+                [
+                    {
+                        "node": "Kirim WA Notifikasi",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook Admin Response (WA/Web)": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Balasan Y/N",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Balasan Y/N": {
+            "main": [
+                [
+                    {
+                        "node": "Cek Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Cek Status": {
+            "main": [
+                [
+                    {
+                        "node": "Update Status APPROVED",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Update Status REJECTED",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Update Status APPROVED": {
+            "main": [
+                [
+                    {
+                        "node": "Split Item Anggaran",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Item Anggaran": {
+            "main": [
+                [
+                    {
+                        "node": "Save to Data_Resmi",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
