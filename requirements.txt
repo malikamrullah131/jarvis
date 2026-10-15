@@ -1,0 +1,1 @@
+# Tidak memerlukan library pihak ketiga untuk Python Standard Library
