@@ -1,111 +1,244 @@
 # 📊 SIKAP - Sistem Informasi Kinerja & Penyerapan Anggaran
-> **Kantor Wilayah Kementerian Imigrasi dan Pemasyarakatan Bangka Belitung (DIPA TA 2026)**
+> **Kantor Wilayah Kementerian Imigrasi dan Pemasyarakatan Kepulauan Bangka Belitung**  
+> *DIPA Tahun Anggaran 2026*
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.x](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
+[![React: 18](https://img.shields.io/badge/React-18-61dafb.svg)](https://react.dev/)
+[![Tailwind: 3.x](https://img.shields.io/badge/TailwindCSS-3.x-38bdf8.svg)](https://tailwindcss.com/)
+[![Chart.js: 4.x](https://img.shields.io/badge/Chart.js-4.x-ff6384.svg)](https://www.chartjs.org/)
 
 ---
 
 ## 📌 1. Penjelasan untuk Orang Awam (Non-Technical Summary)
 
 ### Apa itu SIKAP?
-**SIKAP** adalah aplikasi dashboard monitoring anggaran berbasis web yang dirancang khusus untuk memantau **alokasi Pagu Anggaran**, **Realisasi Penyerapan**, dan **Sisa Anggaran** secara *real-time* dan transparan di lingkungan Kanwil Imigrasi Babel.
+**SIKAP** (*Sistem Informasi Kinerja & Penyerapan Anggaran*) adalah platform dashboard monitoring dan evaluasi realisasi anggaran berbasis web yang dirancang khusus untuk mengawal alokasi **Pagu Anggaran**, **Realisasi Penyerapan**, dan **Sisa Anggaran** secara *real-time*, transparan, dan akuntabel di lingkungan Kanwil Kementerian Imigrasi dan Pemasyarakatan Bangka Belitung.
 
 ### Mengapa SIKAP Dibutuhkan?
-Sebelum ada SIKAP, proses pelaporan anggaran dilakukan secara manual dengan merekap file spreadsheet secara berkala. Dengan SIKAP:
-* 🚀 **Otomatis & Real-Time**: Setiap kali staf mengedit data di Google Sheets, grafik dan angka di website akan **otomatis diperbarui** tanpa perlu membuat laporan ulang.
-* 🎯 **Pantau Target Anggaran**: Pimpinan dan penanggung jawab bidang dapat melihat apakah penyerapan anggaran sudah memenuhi target triwulanan (misal: **Target 70% di Q3**).
-* 💡 **Highlight Sisa Anggaran**: Menyorot total dana yang belum terserap dengan tampilan menonjol agar menjadi prioritas pengawasan.
-* 🖨️ **Cetak Laporan PDF Kustom**: Pimpinan dapat memilih secara spesifik grafik (chart) dan modul data mana saja dari setiap menu yang ingin diikutsertakan ke dalam laporan cetak resmi.
+Sebelum hadirnya SIKAP, proses pelaporan dan evaluasi anggaran dilakukan manual dengan merekap berbagai lembar kerja spreadsheet yang rentan selisih dan memakan waktu. Melalui SIKAP:
+* 🚀 **Otomatis & Real-Time**: Terintegrasi langsung dengan database Google Sheets dan Google Apps Script. Setiap perubahan data anggaran yang diinput staf langsung tercermin pada grafik dan indikator dalam hitungan detik.
+* 🎯 **Pantau Target Anggaran Triwulan**: Membantu pimpinan memantau kepatuhan penyerapan terhadap target berkala (misal: **Target 70% di Triwulan III**).
+* 💡 **Highlight Sisa Anggaran (Amber Alert)**: Menyoroti sisa dana yang belum terserap dengan kartu metrik jumbo dan visualisasi porsi sisa agar menjadi prioritas pengawasan percepatan kegiatan.
+* 🤖 **Asisten AI & Ekstraksi PDF Otomatis**: Dilengkapi integrasi workflow n8n dan bot Telegram untuk mengekstrak dokumen DIPA PDF secara cerdas menggunakan LLM dan mengumpankannya langsung ke sistem.
+* 🖨️ **Cetak Laporan PDF Kustom & Kedinasan**: Memungkinkan pimpinan memilih chart atau tabel tertentu yang ingin dicetak, dilengkapi kop dinas resmi Kementerian dan lembar pengesahan tanda tangan PPK & Kepala Kantor Wilayah.
 
 ---
 
-## 🛠️ 2. Fitur-Fitur Utama Aplikasi (Terbaru & Up-to-Date)
+## 🏢 2. Tiga Bidang Kerja Utama Kanwil
 
-### 🏬 1. Tiga Bidang Kerja Utama Kanwil
-1. **BagTUM** — Bagian Tata Usaha dan Umum (`BAG-TUM`)
-2. **Doklan** — Bidang Dokumen Perjalanan, Izin Tinggal & Status Keimigrasian (`BID-DOKLAN`)
-3. **Gakkum** — Bidang Penegakan Hukum dan Kepatuhan Internal (`BID-GAKKUM`)
+SIKAP mengelompokkan anggaran dan Rencana Output (RO) ke dalam 3 divisi operasional:
 
-### 📋 2. Menu Dashboard Utama
-* **3 Key Metric Cards**: Total Pagu Anggaran (DIPA 2026), Total Realisasi (dengan % Capaian), dan Sisa Pagu Anggaran.
-* **Gauge Circular Chart**: Visualisasi total penyerapan anggaran Kanwil Imigrasi Babel.
-* **Capaian per Bidang**: Tampilan kartu interaktif untuk BagTUM, Doklan, dan Gakkum.
-* **Tabel Detail RO**: Menampilkan daftar Rencana Output per bidang lengkap dengan kode, pagu, realisasi, progress bar, dan lencana status.
-
-### 📄 3. Menu Laporan Anggaran (Highlight & Rekapitulasi)
-* **Hero Card Highlight Sisa Anggaran (Jumbo)**: Kartu utama berukuran besar dengan gradien navy-emas yang menampilkan sisa anggaran Kanwil beserta rincian sisa per bidang kerja.
-* **Pie Chart 1 (Realisasi vs Sisa Anggaran)**: Pie Chart yang menyorot porsi anggaran terpakai dibanding sisa alokasi DIPA.
-* **Pie Chart 2 (Sebaran Sisa Per Bidang)**: Doughnut Chart sebaran sisa dana di BagTUM, Doklan, dan Gakkum.
-* **Tabel Rekapitulasi Laporan**: Tabel konsolidasi Pagu, Realisasi, % Capaian, dan kolom khusus **Sisa Anggaran** yang di-highlight soft amber.
-
-### 📈 4. Menu Analisis RO (Detail Performa Chart.js)
-* **Ranking Performa RO (Horizontal Bar Chart)**: Peringkat capaian realisasi 12 RO teratas dengan indikator warna dinamis.
-* **Distribusi Status RO (Doughnut Chart)**: Proporsi kategori Sangat Baik (≥80%), Optimal (50-79%), dan Perlu Dorongan (<50%).
-* **Top 5 Pagu vs Realisasi (Grouped Bar Chart)**: Perbandingan alokasi dana vs realisasi untuk RO dengan alokasi anggaran terbesar.
-* **Filter & Search Bar**: Pencarian instan per Kode/Nama RO & penyaringan per Bidang Kerja.
-
-### 🖨️ 5. Fitur Cetak Laporan PDF Interaktif (Custom Chart Picker)
-* **Pemilihan Komponen per Menu**: Pengguna dapat mencentang/memilih chart mana yang ingin dimasukkan:
-  - *Dashboard Utama*: Gauge Circular Chart, Summary Cards, Tabel RO.
-  - *Laporan Anggaran*: Hero Card Sisa Anggaran, Pie Chart Realisasi vs Sisa, Pie Chart Sisa per Bidang, Tabel Rekapitulasi.
-  - *Analisis RO*: Horizontal Bar Ranking, Status Doughnut Chart, Grouped Bar Top 5.
-* **Kelengkapan Kedinasan**: Opsi menyertakan Kop Surat Resmi Kementerian & Lembar Pengesahan Tanda Tangan (PPK & Kepala Kanwil).
+1. **BagTUM** — *Bagian Tata Usaha dan Umum* (`BAG-TUM`)  
+   Mencakup operasional perkantoran, belanja pegawai, sarana prasarana, pengadaan perlengkapan, dan administrasi umum.
+2. **Doklan** — *Bidang Dokumen Perjalanan, Izin Tinggal & Status Keimigrasian* (`BID-DOKLAN`)  
+   Fokus pada pelayanan paspor, visa, izin tinggal keimigrasian, pemeliharaan sistem keimigrasian, serta pelayanan publik masyarakat dan WNA.
+3. **Gakkum** — *Bidang Penegakan Hukum dan Kepatuhan Internal* (`BID-GAKKUM`)  
+   Bertanggung jawab atas pengawasan orang asing (TIMPORA), intelijen, penindakan yustisial keimigrasian, dan audit kepatuhan internal.
 
 ---
 
-## 🛠️ 3. Penjelasan untuk Pengembang (Developer Architecture)
+## 🌟 3. Fitur Utama Aplikasi
 
-### 🏗️ Arsitektur & Teknologi Utama
-Aplikasi ini dibangun menggunakan arsitektur **Single-Page Application (SPA)** berbasis CDN modern:
+### 📊 A. Menu Dashboard Utama (`index.html`)
+* **3 Kartu Ringkasan Metrik (Key Metric Cards)**:
+  * Total Pagu Anggaran Kanwil (DIPA TA 2026).
+  * Total Realisasi Anggaran dengan persentase capaian nasional/wilayah.
+  * Sisa Pagu Anggaran yang belum terserap.
+* **Gauge Circular Chart**: Indikator radial persentase penyerapan kumulatif seluruh bidang.
+* **Kartu Capaian per Bidang**: Visualisasi interaktif untuk BagTUM, Doklan, dan Gakkum beserta status performa.
+* **Tabel Rincian Rencana Output (RO)**: Tabel interaktif berisi nomor, kode RO, nama kegiatan, alokasi pagu, realisasi, progress bar dinamis, dan lencana status (*Sangat Baik*, *Optimal*, *Perlu Dorongan*).
+* **Pencarian & Filter Instan**: Pencarian cepat berdasarkan kode atau nama RO serta penyaringan berdasarkan bidang.
 
-* **Frontend Framework**: [React 18](https://react.dev/) via Unpkg CDN & Babel Standalone (`text/babel`).
-* **UI & Styling**: [Tailwind CSS CDN](https://tailwindcss.com/) dengan palet warna khusus Kementerian (Navy `#002147`, Gold `#D4AF37`, Cyan `#00A896`, Slate).
-* **Data Visualization**: [Chart.js (v4)](https://www.chartjs.org/) untuk visualisasi Pie Chart, Doughnut Chart, Horizontal Bar Chart, dan Grouped Bar Chart.
-* **Iconography**: [Lucide Icons](https://lucide.dev/).
-* **Backend Dev Server**: Lightweight Python HTTP Server (`server.py`).
+### 📑 B. Menu Laporan Anggaran
+* **Hero Card Highlight Sisa Anggaran (Jumbo)**: Kartu visual besar bergradien navy-emas yang memaparkan rincian nominal sisa anggaran per bidang kerja.
+* **Pie Chart: Realisasi vs Sisa Anggaran**: Perbandingan visual proporsi dana terserap vs dana sisa dari total alokasi DIPA.
+* **Doughnut Chart: Sebaran Sisa per Bidang**: Distribusi sisa pagu antara BagTUM, Doklan, dan Gakkum.
+* **Tabel Rekapitulasi Laporan**: Konsolidasi menyeluruh mencakup pagu, realisasi, persentase, dan kolom sisa anggaran dengan highlight warna khusus.
+
+### 📈 C. Menu Analisis RO (Performa Chart.js)
+* **Horizontal Bar Chart (Ranking RO)**: Pemeringkatan 12 Rencana Output teratas berdasarkan persentase penyerapan dengan palet warna otomatis (hijau, kuning, merah).
+* **Doughnut Chart Distribusi Status RO**: Proporsi jumlah kegiatan berdasarkan kategori *Sangat Baik* (≥80%), *Optimal* (50–79%), dan *Perlu Dorongan* (<50%).
+* **Grouped Bar Chart (Top 5 Pagu vs Realisasi)**: Perbandingan alokasi pagu terhadap serapan riil untuk 5 kegiatan dengan anggaran terbesar.
+
+### 🖨️ D. Modal Cetak Laporan PDF Interaktif
+* **Pemilih Komponen Cetak (Custom Component Picker)**: Pengguna dapat mencentang modul mana saja yang ingin disertakan ke laporan cetak:
+  * *Dashboard*: Gauge Chart, Summary Cards, Tabel RO.
+  * *Laporan*: Hero Card Sisa, Pie Realisasi vs Sisa, Doughnut Sebaran Sisa, Tabel Rekap.
+  * *Analisis*: Ranking Bar, Status Doughnut, Top 5 Grouped Bar.
+* **Format Dokumen Kedinasan Resmi**:
+  * Kop Surat Resmi Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia.
+  * Judul dokumen, nomor laporan, dan tanggal cetak otomatis.
+  * Lembar pengesahan tanda tangan ganda: **Pejabat Pembuat Komitmen (PPK)** dan **Kepala Kantor Wilayah**.
+* **Mode Siap Cetak (Print Stylesheet)**: Halaman otomatis dioptimalkan untuk ukuran kertas A4, margin rapi, dan pemotongan halaman teratur (`page-break-inside: avoid`).
+
+### 🤖 E. Simulasi & AI Jarvis DIPA Assistant (`simulasi.html`)
+* **Asisten Interaktif DIPA**: Chat assistant untuk menganalisis data serapan anggaran, memberikan saran percepatan, dan rekomendasi realokasi anggaran.
+* **Simulasi Anggaran & What-If Analysis**: Pengujian skenario realisasi dan pergeseran pagu antar-kegiatan tanpa mengubah data produksi secara langsung.
+* **Proxy Webhook n8n Terintegrasi**: Jalur komunikasi aman tanpa kendala CORS antara browser dengan workflow AI.
 
 ---
 
-### 🔄 Alur Data & Sinkronisasi (Dual-Mode Data Engine)
+## 🔄 4. Alur Integrasi Data & Arsitektur Sistem
 
 ```text
-[ Google Sheets Database ]
-          │
-          ├──> 1. Google Sheets API v4 (JSON Endpoint) ──┐
-          │                                              ├──> [ Parser & Formatter ] ──> [ React State ] ──> [ Dashboard & Chart.js ]
-          └──> 2. Direct Live CSV Export (Fallback) ─────┘
+       ┌────────────────────────┐
+       │ Dokumen DIPA 2026 (PDF)│
+       └───────────┬────────────┘
+                   │ Kirim via Telegram
+                   ▼
+       ┌────────────────────────┐
+       │   Telegram Bot (n8n)   │  ───> workflow_dipa_gsheets.json
+       └───────────┬────────────┘       (LLM Information Extractor)
+                   │ Ekstrak JSON
+                   ▼
+       ┌────────────────────────┐
+       │ Google Sheets Database │  ───> Spreadsheet ID: 1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0
+       └───────────┬────────────┘
+                   │
+         ┌─────────┴─────────┐
+         │                   │
+         ▼                   ▼
+┌──────────────────┐ ┌──────────────────┐
+│ Google Apps      │ │ CSV Export       │
+│ Script (Code.gs) │ │ Live (Fallback)  │
+└────────┬─────────┘ └────────┬─────────┘
+         │                    │
+         └─────────┬──────────┘
+                   ▼
+       ┌────────────────────────┐
+       │  SIKAP Local Server    │  ───> server.py (Port 8081)
+       │  (Reverse Proxy /n8n)  │       Proxy ke n8n AI webhook
+       └───────────┬────────────┘
+                   │
+                   ▼
+       ┌────────────────────────┐
+       │  Frontend Dashboard    │  ───> React 18, Tailwind CSS, Chart.js
+       │  (index.html)          │       Auto-refresh interval 10 detik
+       └────────────────────────┘
 ```
 
-1. **Dual-Mode Fetching & Failover**:
-   * **Mode Utama (API v4)**: Mengakses Google Sheets API Endpoint.
-   * **Mode Fallback (CSV Live)**: Jika API Key error/terbatas, beralih ke CSV export URL.
-2. **Periodic Auto-Sync**: Sinkronisasi otomatis berjalan setiap **10 detik** (`setInterval`).
+1. **Dual-Mode Data Ingestion**:
+   * **Mode Utama**: Mengambil data terstruktur via REST API Google Apps Script (`Code.gs`) yang mereturn JSON bersih.
+   * **Mode Fallback**: Mengunduh langsung data CSV dari Google Sheets jika kuota API tercapai atau jaringan terbatas.
+2. **Periodic Auto-Sync**: Dashboard secara otomatis memeriksa pembaruan data setiap **10 detik**.
+3. **Local Reverse Proxy**: `server.py` menyediakan rute `POST /proxy/n8n` dengan timeout 120 detik untuk meneruskan prompt analisis ke AI engine di cloud tanpa hambatan CORS browser.
 
 ---
 
-## 📂 4. Struktur Berkas Proyek
+## 📂 5. Struktur Berkas Proyek
 
 ```text
 SIKAP/
-├── index.html                  # Aplikasi utama (React + Tailwind + Chart.js + Modal Print)
-├── server.py                    # Server HTTP lokal berbasis Python (Port 8081)
-├── workflow_dipa_gsheets.json   # Konfigurasi n8n workflow DIPA PDF Telegram to Google Sheets
-├── n8n_workflow_sikap.json      # Konfigurasi n8n AI webhook engine SIKAP
-├── Code.gs                      # Google Apps Script penunjang backend Google Sheet
-└── README.md                   # Dokumentasi resmi proyek ini
+├── index.html                  # Aplikasi Dashboard Utama (React 18 + Tailwind + Chart.js + Modal Cetak)
+├── simulasi.html               # Halaman Simulasi Interaktif & Asisten AI DIPA (Jarvis)
+├── server.py                   # Local HTTP & Webhook Proxy Server (Python standard library, Port 8081)
+├── SIKAP_Server.vbs            # Launcher senyap (background silent) untuk Windows
+├── Code.gs                     # Google Apps Script Web App Backend (Realtime Google Sheets REST API)
+├── requirements.txt            # Keterangan dependensi (Zero third-party library required)
+├── n8n_workflow_sikap.json      # Konfigurasi n8n AI Webhook Engine & Action Router
+├── workflow_dipa_gsheets.json   # Konfigurasi n8n Telegram Bot PDF Extractor to Google Sheets
+├── README.md                   # Dokumentasi resmi proyek SIKAP
+│
+├── css/
+│   └── styles.css              # Custom styling, scrollbar, print layout & utility classes
+│
+├── js/
+│   ├── api.js                  # Modul integrasi ke backend n8n Webhook & GSheets API
+│   ├── app.js                  # Controller tabel data, kalkulasi DIPA, dan CRUD
+│   ├── appscript-template.js   # Template referensi Google Apps Script
+│   ├── charts.js               # Konfigurasi dan perenderan dinamis grafik Chart.js
+│   ├── database.js             # Skema data lokal dan mock database cadangan
+│   ├── jarvis.js               # Handler prompt chat AI dan pembaruan grafik dinamis
+│   └── runtime.txt             # Catatan konfigurasi runtime JavaScript
+│
+└── img/
+    ├── logo_kemenimipas.png    # Lambang resmi Kementerian Imigrasi dan Pemasyarakatan
+    └── logo_kemenimipas_official.png # Logo resmi resolusi tinggi untuk Kop Surat Cetak
 ```
 
 ---
 
-## 🖥️ 5. Panduan Jalankan Aplikasi (Quick Start)
+## 🚀 6. Panduan Menjalankan Aplikasi (Quick Start)
 
-### Langkah-Langkah:
-1. **Jalankan Server Lokal**:
+### Prasyarat
+* **Python 3.8+** terpasang di sistem operasi (Windows / macOS / Linux).
+* Tidak memerlukan instalasi paket tambahan (`pip install`), seluruh modul server menggunakan **Python Standard Library** bawaan.
+
+### Langkah Menjalankan:
+
+#### Opsi 1: Menjalankan via Terminal / Command Prompt
+1. Buka folder proyek di terminal:
+   ```bash
+   cd c:\Users\user\Downloads\SIKAP
+   ```
+2. Jalankan script server:
    ```bash
    python server.py
    ```
-2. **Akses Dashboard**:
-   Buka browser dan akses:
+3. Browser akan otomatis terbuka ke:
    👉 **`http://localhost:8081`**
+4. Untuk mengakses dari perangkat lain (HP / Tablet / Laptop satu jaringan LAN):
+   Akses melalui IP lokal yang tampil di konsol, contoh: **`http://192.168.1.x:8081`**
+
+#### Opsi 2: Menjalankan di Latar Belakang (Windows Silent Mode)
+Cukup klik ganda berkas **`SIKAP_Server.vbs`**. Server akan berjalan secara senyap di latar belakang menggunakan `pythonw.exe`.
 
 ---
 
-*Dokumentasi ini terus diperbarui sesuai dengan perkembangan fitur Sistem SIKAP Kanwil Imigrasi Babel.*
+## ⚙️ 7. Panduan Pemasangan Backend (Google Sheets & n8n)
+
+### A. Pemasangan Google Apps Script (`Code.gs`)
+1. Buka Google Sheet database Anda:
+   👉 [Google Sheets DIPA Kanwil](https://docs.google.com/spreadsheets/d/1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0/edit)
+2. Klik menu **Ekstensi** > **Apps Script** (*Extensions* > *Apps Script*).
+3. Hapus kode default, lalu salin dan tempel seluruh isi berkas [`Code.gs`](file:///c:/Users/user/Downloads/SIKAP/Code.gs).
+4. Klik **Simpan** (ikon disket).
+5. Klik **Terapkan** > **Terapkan sebagai Aplikasi Web** (*Deploy* > *New Deployment*).
+   * **Jenis**: Aplikasi Web (*Web App*)
+   * **Jalankan sebagai**: Saya (*Me*)
+   * **Akses**: Siapa saja (*Anyone*)
+6. Klik **Terapkan** (*Deploy*), salin URL Web App yang dihasilkan.
+
+### B. Import Workflow n8n
+1. Buka dashboard instance n8n Anda.
+2. Buat workflow baru dan pilih **Import from File**:
+   * Impor [`workflow_dipa_gsheets.json`](file:///c:/Users/user/Downloads/SIKAP/workflow_dipa_gsheets.json) untuk automasi upload PDF via Telegram.
+   * Impor [`n8n_workflow_sikap.json`](file:///c:/Users/user/Downloads/SIKAP/n8n_workflow_sikap.json) untuk webhook router query AI.
+3. Hubungkan kredensial Google Service Account dan Token Bot Telegram Anda.
+4. Aktifkan workflow (*Active*).
+
+---
+
+## 🐙 8. Manajemen Git & GitHub Repository
+
+Proyek ini telah dikonfigurasi untuk terhubung dengan repository GitHub:
+
+* **Remote Origin**: `https://github.com/malikamrullah131/jarvis.git`
+* **Default Branch**: `main`
+
+### Perintah Standar Sinkronisasi Git:
+```bash
+# Periksa status perubahan berkas
+git status
+
+# Tambahkan perubahan berkas ke staging area
+git add .
+
+# Buat commit perubahan
+git commit -m "docs: update comprehensive README and architecture documentation"
+
+# Dorong (push) perubahan ke repositori GitHub
+git push origin main
+```
+
+---
+
+## 👥 9. Tim Pengembang & Kontak
+
+* **Instansi**: Kantor Wilayah Kementerian Imigrasi dan Pemasyarakatan Kepulauan Bangka Belitung
+* **Divisi**: Pengelola Keuangan dan Anggaran (DIPA 2026)
+* **Email Kontak**: `kanwil.babel@imigrasi.go.id`
+
+---
+*Dokumentasi ini dipelihara dan diperbarui secara berkala mengikuti pembaruan fitur Sistem SIKAP.*
