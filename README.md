@@ -10,7 +10,7 @@
 
 ---
 
-## 📌 1. Penjelasan untuk Orang Awam (Non-Technical Summary)
+## 📌 1. Penjelasan untuk Orang Awam
 
 ### Apa itu SIKAP?
 **SIKAP** (*Sistem Informasi Kinerja & Penyerapan Anggaran*) adalah platform dashboard monitoring dan evaluasi realisasi anggaran berbasis web yang dirancang khusus untuk mengawal alokasi **Pagu Anggaran**, **Realisasi Penyerapan**, dan **Sisa Anggaran** secara *real-time*, transparan, dan akuntabel di lingkungan Kanwil Kementerian Imigrasi dan Pemasyarakatan Bangka Belitung.
@@ -93,7 +93,7 @@ SIKAP mengelompokkan anggaran dan Rencana Output (RO) ke dalam 3 divisi operasio
                    │ Ekstrak JSON
                    ▼
        ┌────────────────────────┐
-       │ Google Sheets Database │  ───> Spreadsheet ID: 1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0
+       │ Google Sheets Database │  ───> Penyimpanan Data Realtime DIPA
        └───────────┬────────────┘
                    │
          ┌─────────┴─────────┐
@@ -189,8 +189,7 @@ Cukup klik ganda berkas **`SIKAP_Server.vbs`**. Server akan berjalan secara seny
 ## ⚙️ 7. Panduan Pemasangan Backend (Google Sheets & n8n)
 
 ### A. Pemasangan Google Apps Script (`Code.gs`)
-1. Buka Google Sheet database Anda:
-   👉 [Google Sheets DIPA Kanwil](https://docs.google.com/spreadsheets/d/1qx2cY3-fzDnQEK5OnvxdP9ntDHxMVUBbVcQE4b292m0/edit)
+1. Buka spreadsheet Google Sheets database DIPA Anda.
 2. Klik menu **Ekstensi** > **Apps Script** (*Extensions* > *Apps Script*).
 3. Hapus kode default, lalu salin dan tempel seluruh isi berkas [`Code.gs`](file:///c:/Users/user/Downloads/SIKAP/Code.gs).
 4. Klik **Simpan** (ikon disket).
